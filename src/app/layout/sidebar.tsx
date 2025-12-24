@@ -20,17 +20,6 @@ const Library = memo(LibraryIcon)
 const Podcast = memo(PodcastIcon)
 const Palette = memo(PaletteIcon)
 
-// Yedits Logo component for Home button
-function YeditsLogo() {
-  return (
-    <img
-      src="/resources/icons/yedits-YE-logo-white1.webp"
-      alt="yedits.net"
-      className="h-10 w-auto object-contain transition-all duration-300 group-hover:scale-110 group-hover:brightness-125"
-    />
-  )
-}
-
 export interface ISidebarItem {
   id: string
   title: string
@@ -56,7 +45,7 @@ export const mainNavItems = [
     id: SidebarItems.Home,
     title: 'sidebar.home',
     route: ROUTES.LIBRARY.HOME,
-    icon: YeditsLogo,
+    icon: Home,
   },
 ]
 
