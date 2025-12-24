@@ -1,6 +1,6 @@
 import { repository, version } from '@/../package.json'
 
-export const appName = 'Yedits.net'
+export const appName = 'yedits.net'
 
 export function getAppInfo() {
   return {
