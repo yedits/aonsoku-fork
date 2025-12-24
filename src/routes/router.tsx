@@ -21,6 +21,7 @@ import { albumsLoader } from '@/routes/loaders/albumsLoader'
 import { loginLoader } from '@/routes/loginLoader'
 import { podcastsLoader, protectedLoader } from '@/routes/protectedLoader'
 import { ROUTES } from '@/routes/routesList'
+import { routeList } from '@/routes/routesList'
 
 const BaseLayout = lazy(() => import('@/app/layout/base'))
 const Album = lazy(() => import('@/app/pages/albums/album'))
@@ -29,6 +30,7 @@ const Artist = lazy(() => import('@/app/pages/artists/artist'))
 const ArtistsList = lazy(() => import('@/app/pages/artists/list'))
 const ErrorPage = lazy(() => import('@/app/pages/error-page'))
 const Login = lazy(() => import('@/app/pages/login'))
+const RegisterPage = lazy(() => import('@/app/features/auth/RegisterPage'))
 const PlaylistsPage = lazy(() => import('@/app/pages/playlists/list'))
 const Playlist = lazy(() => import('@/app/pages/playlists/playlist'))
 const Radios = lazy(() => import('@/app/pages/radios/radios-list'))
@@ -211,6 +213,16 @@ export const router = createHashRouter([
     element: (
       <Suspense>
         <Login />
+      </Suspense>
+    ),
+  },
+  {
+    id: 'register',
+    path: routeList.REGISTER,
+    loader: loginLoader,
+    element: (
+      <Suspense>
+        <RegisterPage />
       </Suspense>
     ),
   },
