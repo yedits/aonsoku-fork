@@ -186,7 +186,7 @@ export default function ArtGallery() {
 
       <Tabs defaultValue="albums" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="albums">Album Covers</TabsTrigger>
+          <TabsTrigger value="albums">Comp Covers</TabsTrigger>
           <TabsTrigger value="custom">
             Custom Artwork ({artworks.length})
           </TabsTrigger>
@@ -224,7 +224,7 @@ export default function ArtGallery() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="album">Albums Only</SelectItem>
+                  <SelectItem value="album">Comps Only</SelectItem>
                   <SelectItem value="single">Singles Only</SelectItem>
                 </SelectContent>
               </Select>
