@@ -84,7 +84,7 @@ export const usePlayerStore = createWithEqualityFn<IPlayerContext>()(
               },
             },
             lyrics: {
-              preferSyncedLyrics: false,
+              preferSyncedLyrics: true,
               setPreferSyncedLyrics: (value) => {
                 set((state) => {
                   state.settings.lyrics.preferSyncedLyrics = value
@@ -93,7 +93,7 @@ export const usePlayerStore = createWithEqualityFn<IPlayerContext>()(
             },
             replayGain: {
               values: {
-                enabled: false,
+                enabled: true,
                 type: 'track',
                 preAmp: 0,
                 error: false,
@@ -810,9 +810,9 @@ export const usePlayerStore = createWithEqualityFn<IPlayerContext>()(
                 state.settings.colors.bigPlayer.blur.settings = blurSettings
                 state.settings.colors.currentSongColorIntensity = 0.65
                 state.settings.fullscreen.autoFullscreenEnabled = false
-                state.settings.lyrics.preferSyncedLyrics = false
+                state.settings.lyrics.preferSyncedLyrics = true
                 state.settings.replayGain.values = {
-                  enabled: false,
+                  enabled: true,
                   type: 'track',
                   preAmp: 0,
                   error: false,
