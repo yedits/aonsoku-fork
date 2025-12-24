@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { ROUTES } from '@/routes/routesList'
 import { getAlbumList } from '@/queries/albums'
 import { IAlbum } from '@/types/responses/album'
-import { Disc, Disc3, User, Calendar, Download } from 'lucide-react'
+import { Disc, Disc3, User, Calendar, Download, Info, TrendingDown } from 'lucide-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import debounce from 'lodash/debounce'
 import { queryKeys } from '@/utils/queryKeys'
@@ -24,9 +24,11 @@ import { getMainScrollElement } from '@/utils/scrollPageToTop'
 import { UploadArtworkDialog } from '@/app/components/art/upload-artwork-dialog'
 import { useArtworkStore, CustomArtwork, ArtworkType } from '@/store/artwork.store'
 import { ArtworkDetailModal } from '@/app/components/art/artwork-detail-modal'
+import { AlbumInfoModal } from '@/app/components/art/album-info-modal'
 import { useToast } from '@/hooks/use-toast'
 
 type ArtType = 'all' | 'album' | 'single'
+type SortType = 'recent' | 'popular'
 
 const typeLabels: Record<ArtworkType, string> = {
   [ArtworkType.SingleCover]: 'Single Cover',
@@ -41,10 +43,13 @@ export default function ArtGallery() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCustomType, setSelectedCustomType] = useState<string>('all')
   const [selectedArtwork, setSelectedArtwork] = useState<CustomArtwork | null>(null)
+  const [selectedAlbum, setSelectedAlbum] = useState<IAlbum | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showAlbumModal, setShowAlbumModal] = useState(false)
+  const [sortType, setSortType] = useState<SortType>('recent')
   const scrollDivRef = useRef<HTMLDivElement | null>(null)
 
-  const { artworks, loadArtworks } = useArtworkStore()
+  const { artworks, loadArtworks, incrementDownload } = useArtworkStore()
 
   useEffect(() => {
     loadArtworks()
@@ -126,9 +131,9 @@ export default function ArtGallery() {
     })
   }, [albums, selectedArtist, selectedType, searchQuery])
 
-  // Filter custom artworks
+  // Filter and sort custom artworks
   const filteredCustomArtworks = useMemo(() => {
-    return artworks.filter((artwork) => {
+    let filtered = artworks.filter((artwork) => {
       if (selectedArtist !== 'all' && artwork.artistName !== selectedArtist) {
         return false
       }
@@ -148,7 +153,16 @@ export default function ArtGallery() {
 
       return true
     })
-  }, [artworks, selectedArtist, selectedCustomType, searchQuery])
+
+    // Sort by popularity (downloads) or recent
+    if (sortType === 'popular') {
+      filtered = filtered.sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+    } else {
+      filtered = filtered.sort((a, b) => b.uploadedAt - a.uploadedAt)
+    }
+
+    return filtered
+  }, [artworks, selectedArtist, selectedCustomType, searchQuery, sortType])
 
   useEffect(() => {
     const scrollElement = scrollDivRef.current
@@ -266,7 +280,14 @@ export default function ArtGallery() {
           {/* Art Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
             {filteredAlbums.map((album) => (
-              <AlbumArtCard key={album.id} album={album} />
+              <AlbumArtCard
+                key={album.id}
+                album={album}
+                onInfoClick={(album) => {
+                  setSelectedAlbum(album)
+                  setShowAlbumModal(true)
+                }}
+              />
             ))}
           </div>
 
@@ -322,6 +343,22 @@ export default function ArtGallery() {
             </div>
 
             <div className="flex-1 min-w-[200px]">
+              <label className="text-sm font-medium mb-2 block">Sort By</label>
+              <Select
+                value={sortType}
+                onValueChange={(v) => setSortType(v as SortType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Recently Added</SelectItem>
+                  <SelectItem value="popular">Most Popular</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">Search</label>
               <input
                 type="text"
@@ -334,13 +371,15 @@ export default function ArtGallery() {
 
             {(selectedArtist !== 'all' ||
               selectedCustomType !== 'all' ||
-              searchQuery) && (
+              searchQuery ||
+              sortType !== 'recent') && (
               <Button
                 variant="outline"
                 onClick={() => {
                   setSelectedArtist('all')
                   setSelectedCustomType('all')
                   setSearchQuery('')
+                  setSortType('recent')
                 }}
               >
                 Clear Filters
@@ -365,6 +404,7 @@ export default function ArtGallery() {
                     setSelectedArtwork(artwork)
                     setShowDetailModal(true)
                   }}
+                  onDownload={() => incrementDownload(artwork.id)}
                 />
               ))}
             </div>
@@ -385,12 +425,54 @@ export default function ArtGallery() {
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
       />
+
+      {/* Album Info Modal */}
+      <AlbumInfoModal
+        album={selectedAlbum}
+        open={showAlbumModal}
+        onOpenChange={setShowAlbumModal}
+      />
     </div>
   )
 }
 
-function AlbumArtCard({ album }: { album: IAlbum }) {
+function AlbumArtCard({
+  album,
+  onInfoClick,
+}: {
+  album: IAlbum
+  onInfoClick: (album: IAlbum) => void
+}) {
   const isSingle = album.songCount === 1
+  const { success, error } = useToast()
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const coverUrl = getCoverArtUrl(album.coverArt, 'album', '800')
+      const response = await fetch(coverUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${album.name} - ${album.artist}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      success('Downloaded', `${album.name} saved to downloads`)
+    } catch (err) {
+      error('Download failed', 'Failed to download cover')
+      console.error(err)
+    }
+  }
+
+  const handleInfoClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onInfoClick(album)
+  }
 
   return (
     <Link
@@ -405,6 +487,22 @@ function AlbumArtCard({ album }: { album: IAlbum }) {
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 flex gap-2">
+          <button
+            onClick={handleInfoClick}
+            className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+            title="Info"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <div className="flex items-center gap-1 mb-1">
             {isSingle ? (
@@ -429,9 +527,11 @@ function AlbumArtCard({ album }: { album: IAlbum }) {
 function CustomArtCard({
   artwork,
   onClick,
+  onDownload,
 }: {
   artwork: CustomArtwork
   onClick: () => void
+  onDownload: () => void
 }) {
   const { success, error } = useToast()
 
@@ -444,6 +544,7 @@ function CustomArtCard({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      onDownload() // Increment download counter
       success('Downloaded', `${artwork.artworkName} saved to downloads`)
     } catch (err) {
       error('Download failed', 'Failed to download artwork')
@@ -475,6 +576,12 @@ function CustomArtCard({
             <User className="w-3 h-3 text-white/80" />
             <span className="text-xs text-white/80">
               {artwork.editor || artwork.artistName}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <TrendingDown className="w-3 h-3 text-white/80" />
+            <span className="text-xs text-white/80">
+              {artwork.downloads || 0} downloads
             </span>
           </div>
           <div className="flex items-center gap-1">
