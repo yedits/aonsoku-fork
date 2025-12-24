@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/app/components/button';
-import { Input } from '@/app/components/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/card';
-import { Label } from '@/app/components/label';
-import { Alert, AlertDescription } from '@/app/components/alert';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Label } from '@/app/components/ui/label';
 
 const REGISTRATION_API = 'http://localhost:3001/api/register';
 
@@ -39,28 +38,24 @@ export default function RegisterPage() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Username validation
     if (!formData.username) {
       newErrors.username = 'Username is required';
     } else if (!/^[a-zA-Z0-9_-]{3,20}$/.test(formData.username)) {
       newErrors.username = 'Username must be 3-20 characters (letters, numbers, _, -)';
     }
 
-    // Email validation
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
 
-    // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
@@ -117,7 +112,6 @@ export default function RegisterPage() {
       [name]: value
     }));
     
-    // Clear error for this field
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
         ...prev,
@@ -167,9 +161,9 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           {apiError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{apiError}</AlertDescription>
-            </Alert>
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+              {apiError}
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
