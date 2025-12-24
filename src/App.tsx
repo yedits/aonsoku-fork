@@ -2,6 +2,7 @@ import { isDesktop } from 'react-device-detect'
 import { RouterProvider } from 'react-router-dom'
 import { Linux } from '@/app/components/controls/linux'
 import { SettingsDialog } from '@/app/components/settings/dialog'
+import { Toaster } from '@/app/components/ui/toaster'
 import { LangObserver } from '@/app/observers/lang-observer'
 import { MediaSessionObserver } from '@/app/observers/media-session-observer'
 import { ThemeObserver } from '@/app/observers/theme-observer'
@@ -23,6 +24,7 @@ function App() {
       <SettingsDialog />
       <RouterProvider router={router} />
       <ToastContainer />
+      <Toaster />
       {isLinux && <Linux />}
     </>
   )
