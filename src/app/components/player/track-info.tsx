@@ -57,7 +57,7 @@ export function TrackInfo({ song }: { song: ISong | undefined }) {
   if (!song) {
     return (
       <Fragment>
-        <div className="w-[70px] h-[70px] flex justify-center items-center bg-muted rounded">
+        <div className="w-[56px] h-[56px] flex justify-center items-center bg-muted rounded-lg">
           <AudioLines data-testid="song-no-playing-icon" />
         </div>
         <div className="flex flex-col justify-center">
@@ -75,7 +75,7 @@ export function TrackInfo({ song }: { song: ISong | undefined }) {
   return (
     <Fragment>
       <div className="group relative">
-        <div className="min-w-[70px] max-w-[70px] aspect-square bg-cover bg-center bg-skeleton rounded overflow-hidden shadow-md">
+        <div className="min-w-[56px] max-w-[56px] aspect-square bg-cover bg-center bg-skeleton rounded-lg overflow-hidden shadow-md">
           <LazyLoadImage
             key={song.id}
             id="track-song-image"
