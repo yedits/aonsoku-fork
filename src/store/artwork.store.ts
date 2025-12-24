@@ -21,8 +21,15 @@ export interface CustomArtwork {
   tags?: string[]
 }
 
+// Track downloads for album covers from Subsonic
+export interface AlbumDownload {
+  albumId: string
+  downloads: number
+}
+
 interface ArtworkStore {
   artworks: CustomArtwork[]
+  albumDownloads: Record<string, number>
   isLoading: boolean
   loadArtworks: () => Promise<void>
   addArtwork: (artwork: Omit<CustomArtwork, 'id' | 'uploadedAt' | 'downloads'>) => Promise<void>
@@ -30,27 +37,38 @@ interface ArtworkStore {
   deleteArtwork: (id: string) => Promise<void>
   getArtwork: (id: string) => CustomArtwork | undefined
   incrementDownload: (id: string) => Promise<void>
+  incrementAlbumDownload: (albumId: string) => Promise<void>
+  getAlbumDownloads: (albumId: string) => number
 }
 
 const ARTWORK_STORE_KEY = 'custom-artworks'
+const ALBUM_DOWNLOADS_KEY = 'album-downloads'
 
 export const useArtworkStore = create<ArtworkStore>((setState, getState) => ({
   artworks: [],
+  albumDownloads: {},
   isLoading: false,
 
   loadArtworks: async () => {
     setState({ isLoading: true })
     try {
       const storedArtworks = await get<CustomArtwork[]>(ARTWORK_STORE_KEY)
+      const storedAlbumDownloads = await get<Record<string, number>>(ALBUM_DOWNLOADS_KEY)
+      
       // Migrate old artworks to include downloads field
       const migratedArtworks = (storedArtworks || []).map(artwork => ({
         ...artwork,
         downloads: artwork.downloads ?? 0,
       }))
-      setState({ artworks: migratedArtworks, isLoading: false })
+      
+      setState({ 
+        artworks: migratedArtworks, 
+        albumDownloads: storedAlbumDownloads || {},
+        isLoading: false 
+      })
     } catch (error) {
       console.error('Failed to load artworks:', error)
-      setState({ artworks: [], isLoading: false })
+      setState({ artworks: [], albumDownloads: {}, isLoading: false })
     }
   },
 
@@ -123,5 +141,25 @@ export const useArtworkStore = create<ArtworkStore>((setState, getState) => ({
       console.error('Failed to increment download:', error)
       throw error
     }
+  },
+
+  incrementAlbumDownload: async (albumId) => {
+    const currentDownloads = getState().albumDownloads
+    const updatedDownloads = {
+      ...currentDownloads,
+      [albumId]: (currentDownloads[albumId] || 0) + 1,
+    }
+
+    try {
+      await set(ALBUM_DOWNLOADS_KEY, updatedDownloads)
+      setState({ albumDownloads: updatedDownloads })
+    } catch (error) {
+      console.error('Failed to increment album download:', error)
+      throw error
+    }
+  },
+
+  getAlbumDownloads: (albumId) => {
+    return getState().albumDownloads[albumId] || 0
   },
 }))

@@ -12,6 +12,7 @@ import { Disc, Disc3, User, Calendar, Download, Music, Hash } from 'lucide-react
 import { useToast } from '@/hooks/use-toast'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/routes/routesList'
+import { useArtworkStore } from '@/store/artwork.store'
 
 interface AlbumInfoModalProps {
   album: IAlbum | null
@@ -25,6 +26,7 @@ export function AlbumInfoModal({
   onOpenChange,
 }: AlbumInfoModalProps) {
   const { success, error } = useToast()
+  const { incrementAlbumDownload } = useArtworkStore()
 
   if (!album) return null
 
@@ -43,6 +45,7 @@ export function AlbumInfoModal({
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      incrementAlbumDownload(album.id)
       success('Downloaded', `${album.name} cover saved to downloads`)
     } catch (err) {
       error('Download failed', 'Failed to download album cover')
@@ -130,19 +133,6 @@ export function AlbumInfoModal({
                 {album.songCount} {album.songCount === 1 ? 'track' : 'tracks'}
               </p>
             </div>
-
-            {/* Duration */}
-            {album.duration && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span>Duration</span>
-                </div>
-                <p className="text-lg">
-                  {Math.floor(album.duration / 60)} min {album.duration % 60} sec
-                </p>
-              </div>
-            )}
 
             {/* Created Date */}
             <div className="space-y-2">

@@ -47,9 +47,10 @@ export default function ArtGallery() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showAlbumModal, setShowAlbumModal] = useState(false)
   const [sortType, setSortType] = useState<SortType>('recent')
+  const [albumSortType, setAlbumSortType] = useState<SortType>('recent')
   const scrollDivRef = useRef<HTMLDivElement | null>(null)
 
-  const { artworks, loadArtworks, incrementDownload } = useArtworkStore()
+  const { artworks, loadArtworks, incrementDownload, incrementAlbumDownload, getAlbumDownloads } = useArtworkStore()
 
   useEffect(() => {
     loadArtworks()
@@ -106,9 +107,9 @@ export default function ArtGallery() {
     return Array.from(artistSet).sort()
   }, [artworks])
 
-  // Filter albums
+  // Filter and sort albums
   const filteredAlbums = useMemo(() => {
-    return albums.filter((album) => {
+    let filtered = albums.filter((album) => {
       if (selectedArtist !== 'all' && album.artistId !== selectedArtist) {
         return false
       }
@@ -129,7 +130,14 @@ export default function ArtGallery() {
 
       return true
     })
-  }, [albums, selectedArtist, selectedType, searchQuery])
+
+    // Sort by popularity (downloads) or recent
+    if (albumSortType === 'popular') {
+      filtered = filtered.sort((a, b) => getAlbumDownloads(b.id) - getAlbumDownloads(a.id))
+    }
+
+    return filtered
+  }, [albums, selectedArtist, selectedType, searchQuery, albumSortType, getAlbumDownloads])
 
   // Filter and sort custom artworks
   const filteredCustomArtworks = useMemo(() => {
@@ -245,6 +253,22 @@ export default function ArtGallery() {
             </div>
 
             <div className="flex-1 min-w-[200px]">
+              <label className="text-sm font-medium mb-2 block">Sort By</label>
+              <Select
+                value={albumSortType}
+                onValueChange={(v) => setAlbumSortType(v as SortType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Recently Added</SelectItem>
+                  <SelectItem value="popular">Most Popular</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">Search</label>
               <input
                 type="text"
@@ -257,13 +281,15 @@ export default function ArtGallery() {
 
             {(selectedArtist !== 'all' ||
               selectedType !== 'all' ||
-              searchQuery) && (
+              searchQuery ||
+              albumSortType !== 'recent') && (
               <Button
                 variant="outline"
                 onClick={() => {
                   setSelectedArtist('all')
                   setSelectedType('all')
                   setSearchQuery('')
+                  setAlbumSortType('recent')
                 }}
               >
                 Clear Filters
@@ -283,10 +309,12 @@ export default function ArtGallery() {
               <AlbumArtCard
                 key={album.id}
                 album={album}
+                downloads={getAlbumDownloads(album.id)}
                 onInfoClick={(album) => {
                   setSelectedAlbum(album)
                   setShowAlbumModal(true)
                 }}
+                onDownload={() => incrementAlbumDownload(album.id)}
               />
             ))}
           </div>
@@ -438,10 +466,14 @@ export default function ArtGallery() {
 
 function AlbumArtCard({
   album,
+  downloads,
   onInfoClick,
+  onDownload,
 }: {
   album: IAlbum
+  downloads: number
   onInfoClick: (album: IAlbum) => void
+  onDownload: () => void
 }) {
   const isSingle = album.songCount === 1
   const { success, error } = useToast()
@@ -461,6 +493,7 @@ function AlbumArtCard({
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      onDownload()
       success('Downloaded', `${album.name} saved to downloads`)
     } catch (err) {
       error('Download failed', 'Failed to download cover')
@@ -504,6 +537,12 @@ function AlbumArtCard({
           </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-3">
+          <div className="flex items-center gap-1 mb-1">
+            <TrendingDown className="w-3 h-3 text-white/80" />
+            <span className="text-xs text-white/80">
+              {downloads} {downloads === 1 ? 'download' : 'downloads'}
+            </span>
+          </div>
           <div className="flex items-center gap-1 mb-1">
             {isSingle ? (
               <Disc className="w-3 h-3 text-white/80" />
