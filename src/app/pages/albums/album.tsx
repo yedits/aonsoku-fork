@@ -54,6 +54,9 @@ export default function Album() {
     ? convertSecondsToHumanRead(album.duration)
     : null
 
+  const isSingle = album.songCount === 1
+  const albumType = isSingle ? t('album.singleHeadline') : t('album.headline')
+
   const badges: BadgesData = [
     { content: album.year?.toString() ?? null, type: 'text' },
     {
@@ -117,7 +120,7 @@ export default function Album() {
   return (
     <div className="w-full">
       <ImageHeader
-        type={t('album.headline')}
+        type={albumType}
         title={album.name}
         subtitle={album.artist}
         artistId={album.artistId}
