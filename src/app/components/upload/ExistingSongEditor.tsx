@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { MetadataEditorEnhanced } from './MetadataEditorEnhanced';
 import { songService, type Song } from '@/api/songService';
+import { tagWriterService } from '@/api/tagWriterService';
 import type { MusicMetadata } from '@/types/upload';
 import {
   Search,
@@ -14,8 +15,9 @@ import {
   Clock,
   AlertCircle,
   X,
+  CheckCircle,
   RefreshCw,
-  CheckCircle2,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
@@ -37,11 +39,21 @@ export function ExistingSongEditor() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [updatingSongs, setUpdatingSongs] = useState<Set<string>>(new Set());
   const [isScanning, setIsScanning] = useState(false);
+  const [serviceAvailable, setServiceAvailable] = useState(false);
 
   useEffect(() => {
     loadRecentSongs();
     checkScanStatus();
+    checkServiceHealth();
   }, []);
+
+  const checkServiceHealth = async () => {
+    const available = await tagWriterService.checkHealth();
+    setServiceAvailable(available);
+    if (!available) {
+      console.warn('Tag writer service not available at http://localhost:3001');
+    }
+  };
 
   const loadRecentSongs = async () => {
     try {
@@ -87,105 +99,77 @@ export function ExistingSongEditor() {
     setIsEditorOpen(true);
   };
 
-  const waitForScanComplete = async (): Promise<void> => {
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(async () => {
-        const status = await songService.getScanStatus();
-        if (!status.scanning) {
-          clearInterval(checkInterval);
-          setIsScanning(false);
-          resolve();
-        }
-      }, 2000);
-    });
-  };
-
   const handleSaveMetadata = async (metadata: MusicMetadata, coverArt?: File) => {
     if (!editingSong) return;
+
+    if (!serviceAvailable) {
+      toast.error(
+        <div>
+          <strong>Tag Writer Service Not Available</strong>
+          <p className="text-xs mt-1">
+            Please start the tag-writer-service. See console for details.
+          </p>
+        </div>
+      );
+      return;
+    }
 
     setUpdatingSongs((prev) => new Set(prev).add(editingSong.id));
 
     try {
-      // Update metadata via backend service
-      const success = await songService.updateSongMetadata(
+      const result = await tagWriterService.updateSongTags(
         editingSong.id,
         metadata,
         coverArt
       );
 
-      if (success) {
+      if (result.success) {
         toast.success(
           <div>
             <strong>Tags updated successfully!</strong>
             <p className="text-xs mt-1">
-              Waiting for library rescan to complete...
+              Navidrome is rescanning your library...
             </p>
           </div>,
-          { autoClose: false, toastId: 'tag-update' }
+          { autoClose: 3000 }
         );
 
+        // Poll for scan completion
         setIsScanning(true);
-
-        // Wait for scan to complete
-        await waitForScanComplete();
-
-        toast.dismiss('tag-update');
-        toast.success(
-          <div>
-            <CheckCircle2 className="w-5 h-5 inline mr-2" />
-            <strong>Tags saved and library updated!</strong>
-          </div>
-        );
-
-        // Refresh the song data
-        const updatedSong = await songService.getSong(editingSong.id);
-        if (updatedSong) {
-          setSearchResults((prev) =>
-            prev.map((s) => (s.id === editingSong.id ? updatedSong : s))
-          );
-          setRecentSongs((prev) =>
-            prev.map((s) => (s.id === editingSong.id ? updatedSong : s))
-          );
-        }
+        const pollInterval = setInterval(async () => {
+          const status = await songService.getScanStatus();
+          if (!status.scanning) {
+            clearInterval(pollInterval);
+            setIsScanning(false);
+            
+            // Refresh the song lists
+            await loadRecentSongs();
+            if (searchQuery.trim()) {
+              await handleSearch();
+            }
+            
+            toast.success('Library rescan complete! Metadata refreshed.');
+          }
+        }, 2000);
 
         setIsEditorOpen(false);
         setEditingSong(null);
       } else {
-        toast.error('Failed to update tags');
+        toast.error(
+          <div>
+            <strong>Failed to update tags</strong>
+            <p className="text-xs mt-1">{result.message}</p>
+          </div>
+        );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      toast.error(
-        <div>
-          <strong>Failed to update tags</strong>
-          <p className="text-xs mt-1">{errorMessage}</p>
-        </div>
-      );
+      toast.error('An error occurred while updating tags');
     } finally {
       setUpdatingSongs((prev) => {
         const next = new Set(prev);
         next.delete(editingSong.id);
         return next;
       });
-    }
-  };
-
-  const handleStartRescan = async () => {
-    try {
-      setIsScanning(true);
-      await songService.startScan();
-      toast.success('Library scan started');
-      
-      await waitForScanComplete();
-      
-      toast.success('Library scan completed!');
-      loadRecentSongs();
-      if (searchQuery.trim()) {
-        handleSearch();
-      }
-    } catch (error) {
-      setIsScanning(false);
-      toast.error('Failed to start library scan');
     }
   };
 
@@ -240,14 +224,14 @@ export function ExistingSongEditor() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleEditSong(song)}
-                  disabled={isUpdating || isScanning}
+                  disabled={isUpdating || !serviceAvailable}
                 >
                   {isUpdating ? (
                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                   ) : (
                     <Edit className="w-3 h-3 mr-1" />
                   )}
-                  Edit Tags
+                  Edit
                 </Button>
               </div>
 
@@ -282,51 +266,56 @@ export function ExistingSongEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Service Status Banner */}
+      {!serviceAvailable && (
+        <div className="p-4 border rounded-lg bg-destructive/10 border-destructive/20">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="font-medium mb-1">Tag Writer Service Not Running</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                The tag writing service is required to edit metadata. Please start it:
+              </p>
+              <code className="block bg-black/10 p-2 rounded text-xs font-mono">
+                cd tag-writer-service && npm install && npm start
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                See tag-writer-service/README.md for setup instructions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Info Banner */}
-      <div className="p-4 border rounded-lg bg-blue-500/10 border-blue-500/20">
+      <div className="p-4 border rounded-lg bg-card">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <Zap className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <h4 className="font-medium mb-1">Edit Existing Song Tags</h4>
             <p className="text-sm text-muted-foreground">
-              Search for songs and edit their metadata directly. Changes are written to the audio files
-              and automatically synced with Navidrome. Currently supports MP3 files.
+              Search for songs and edit their metadata directly. Tags are written to the audio files
+              and Navidrome automatically rescans to reflect changes.
             </p>
+            {serviceAvailable && (
+              <div className="flex items-center gap-2 mt-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-green-500 font-medium">Service Connected</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Scan Status */}
       {isScanning && (
-        <div className="p-3 border rounded-lg bg-primary/10 border-primary/20">
+        <div className="p-3 border rounded-lg bg-blue-500/10 border-blue-500/20">
           <div className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
             <span className="text-sm font-medium">Library scan in progress...</span>
           </div>
         </div>
       )}
-
-      {/* Rescan Button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleStartRescan}
-          disabled={isScanning}
-          variant="outline"
-          size="sm"
-        >
-          {isScanning ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Scanning...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Manual Rescan
-            </>
-          )}
-        </Button>
-      </div>
 
       {/* Search Bar */}
       <div className="space-y-2">
