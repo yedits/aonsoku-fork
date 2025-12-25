@@ -23,6 +23,22 @@ app.use(express.json());
 // Ensure upload directory exists
 await fs.mkdir(config.uploadDir, { recursive: true });
 
+// Helper function to move files across filesystems
+async function moveFile(source, destination) {
+  try {
+    // Try rename first (faster if same filesystem)
+    await fs.rename(source, destination);
+  } catch (error) {
+    if (error.code === 'EXDEV') {
+      // Cross-device link error - copy then delete
+      await fs.copyFile(source, destination);
+      await fs.unlink(source);
+    } else {
+      throw error;
+    }
+  }
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -142,7 +158,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     await fs.mkdir(finalDir, { recursive: true });
     
     const finalPath = path.join(finalDir, `${finalFilename}${ext}`);
-    await fs.rename(filePath, finalPath);
+    await moveFile(filePath, finalPath);
 
     // Trigger Navidrome scan
     if (config.navidromeUrl) {
@@ -223,7 +239,7 @@ app.post('/api/upload/batch', upload.array('files', 50), async (req, res) => {
         await fs.mkdir(finalDir, { recursive: true });
         
         const finalPath = path.join(finalDir, sanitize(file.originalname));
-        await fs.rename(file.path, finalPath);
+        await moveFile(file.path, finalPath);
 
         results.push({
           originalName: file.originalname,
