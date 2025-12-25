@@ -3,17 +3,19 @@ import { Label } from '@/app/components/ui/label';
 import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
+import { CoverArtUpload } from './CoverArtUpload';
 import type { MusicMetadata } from '@/types/upload';
 import { Save, X } from 'lucide-react';
 
 interface MetadataEditorProps {
   initialMetadata?: MusicMetadata;
-  onSave: (metadata: MusicMetadata) => void;
+  onSave: (metadata: MusicMetadata, coverArt?: File) => void;
   onCancel?: () => void;
 }
 
 export function MetadataEditor({ initialMetadata, onSave, onCancel }: MetadataEditorProps) {
   const [metadata, setMetadata] = useState<MusicMetadata>(initialMetadata || {});
+  const [coverArtFile, setCoverArtFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialMetadata) {
@@ -30,11 +32,16 @@ export function MetadataEditor({ initialMetadata, onSave, onCancel }: MetadataEd
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(metadata);
+    onSave(metadata, coverArtFile || undefined);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <CoverArtUpload 
+        onCoverArtSelected={setCoverArtFile}
+        currentCoverArt={metadata.coverArt}
+      />
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="title">Title</Label>

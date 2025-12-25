@@ -97,7 +97,7 @@ export const libraryItems = [
   },
   {
     id: SidebarItems.Upload,
-    title: 'sidebar.upload',
+    title: 'Upload', // Direct text instead of translation key
     route: ROUTES.UPLOAD,
     icon: Upload,
   },

@@ -14,6 +14,7 @@ export interface UploadFile {
   id: string;
   file: File;
   metadata?: MusicMetadata;
+  coverArtFile?: File; // Separate cover art file
   status: 'pending' | 'uploading' | 'success' | 'error';
   progress: number;
   error?: string;
@@ -38,4 +39,10 @@ export interface MetadataResponse {
   };
   common: MusicMetadata;
   native: Record<string, any>;
+}
+
+export interface BatchUploadFile {
+  file: File;
+  metadata?: MusicMetadata;
+  coverArt?: File;
 }
