@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { FileUploader } from '@/app/components/upload/FileUploader';
 import { MetadataEditorEnhanced } from '@/app/components/upload/MetadataEditorEnhanced';
 import { FilePreviewCard } from '@/app/components/upload/FilePreviewCard';
-import { UploadProgress } from '@/app/components/upload/UploadProgress';
+import { ExistingSongEditor } from '@/app/components/upload/ExistingSongEditor';
 import { Button } from '@/app/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Input } from '@/app/components/ui/input';
@@ -19,7 +19,8 @@ import {
   SortAsc,
   Trash2,
   CheckCircle,
-  History
+  Settings,
+  Edit3
 } from 'lucide-react';
 import {
   Dialog,
@@ -36,17 +37,21 @@ import {
   SelectValue,
 } from '@/app/components/ui/select';
 
+type PageMode = UploadMode | 'edit';
+
 export default function UploadPage() {
   const [uploads, setUploads] = useState<UploadFile[]>([]);
   const [editingFile, setEditingFile] = useState<UploadFile | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [uploadMode, setUploadMode] = useState<UploadMode>('quick');
+  const [pageMode, setPageMode] = useState<PageMode>('quick');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [isBatchEditing, setIsBatchEditing] = useState(false);
   const [batchMetadata, setBatchMetadata] = useState<Partial<MusicMetadata>>({});
+
+  const uploadMode = pageMode === 'edit' ? 'quick' : pageMode;
 
   const handleFilesSelected = async (files: File[]) => {
     const newUploads: UploadFile[] = files.map((file, index) => ({
@@ -296,14 +301,14 @@ export default function UploadPage() {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Upload Music</h1>
+        <h1 className="text-3xl font-bold mb-2">Music Management</h1>
         <p className="text-muted-foreground">
-          Upload your music files to Navidrome with custom metadata and artwork
+          Upload new music or edit tags of existing tracks in your library
         </p>
       </div>
 
-      <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as UploadMode)}>
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs value={pageMode} onValueChange={(v) => setPageMode(v as PageMode)}>
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="quick" className="gap-2">
             <Zap className="w-4 h-4" />
             Quick Upload
@@ -315,6 +320,10 @@ export default function UploadPage() {
           <TabsTrigger value="batch" className="gap-2">
             <FolderTree className="w-4 h-4" />
             Batch Upload
+          </TabsTrigger>
+          <TabsTrigger value="edit" className="gap-2">
+            <Edit3 className="w-4 h-4" />
+            Edit Tags
           </TabsTrigger>
         </TabsList>
 
@@ -365,9 +374,13 @@ export default function UploadPage() {
           </div>
           <FileUploader onFilesSelected={handleFilesSelected} />
         </TabsContent>
+
+        <TabsContent value="edit" className="space-y-6">
+          <ExistingSongEditor />
+        </TabsContent>
       </Tabs>
 
-      {uploads.length > 0 && (
+      {uploads.length > 0 && pageMode !== 'edit' && (
         <div className="space-y-6 mt-6">
           {/* Stats and Actions Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 border rounded-lg bg-card">
