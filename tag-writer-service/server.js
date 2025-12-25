@@ -1,241 +1,260 @@
-import express from 'express';
-import cors from 'cors';
-import multer from 'multer';
-import nodeId3 from 'node-id3';
-import { parseFile } from 'music-metadata';
-import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const axios = require('axios');
+const NodeID3 = require('node-id3');
+const mm = require('music-metadata');
+require('dotenv').config();
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
-
-// Configuration
 const PORT = process.env.PORT || 3001;
 const NAVIDROME_URL = process.env.NAVIDROME_URL || 'http://localhost:4533';
-const MUSIC_LIBRARY_PATH = process.env.MUSIC_LIBRARY_PATH;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+const MUSIC_LIBRARY_PATH = process.env.MUSIC_LIBRARY_PATH || '/music';
+const NAVIDROME_USERNAME = process.env.NAVIDROME_USERNAME;
+const NAVIDROME_PASSWORD = process.env.NAVIDROME_PASSWORD;
 
-// Middleware
-app.use(cors({ origin: CORS_ORIGIN }));
+// CORS configuration
+const corsOptions = {
+  origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    musicLibraryPath: MUSIC_LIBRARY_PATH,
-    navidromeUrl: NAVIDROME_URL
-  });
+// Multer configuration for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-// Get song file path from Navidrome
-async function getSongPath(songId, navidromeAuth) {
-  try {
-    const response = await axios.get(`${NAVIDROME_URL}/rest/getSong`, {
-      params: {
-        id: songId,
-        ...navidromeAuth
-      }
-    });
-
-    const song = response.data['subsonic-response']?.song;
-    if (!song) {
-      throw new Error('Song not found');
-    }
-
-    // Build full file path
-    const filePath = path.join(MUSIC_LIBRARY_PATH, song.path);
-    return filePath;
-  } catch (error) {
-    console.error('Error getting song path:', error);
-    throw error;
-  }
+// Helper function to get Navidrome API credentials
+function getNavidromeAuth() {
+  const salt = 'navidrome';
+  const token = require('crypto')
+    .createHash('md5')
+    .update(NAVIDROME_PASSWORD + salt)
+    .digest('hex');
+  
+  return {
+    u: NAVIDROME_USERNAME,
+    t: token,
+    s: salt,
+    v: '1.16.0',
+    c: 'TagWriter',
+    f: 'json',
+  };
 }
 
-// Trigger Navidrome scan
-async function triggerNavidromeScan(navidromeAuth) {
+// Helper function to trigger Navidrome rescan
+async function triggerNavidromeRescan() {
   try {
-    await axios.get(`${NAVIDROME_URL}/rest/startScan`, {
-      params: navidromeAuth
-    });
-    console.log('Navidrome scan triggered');
+    const auth = getNavidromeAuth();
+    const params = new URLSearchParams(auth);
+    await axios.get(`${NAVIDROME_URL}/rest/startScan?${params}`);
+    console.log('Navidrome rescan triggered');
     return true;
   } catch (error) {
-    console.error('Error triggering Navidrome scan:', error);
+    console.error('Failed to trigger Navidrome rescan:', error.message);
     return false;
   }
 }
 
-// Write tags to MP3 file
-function writeMP3Tags(filePath, tags, coverArtPath) {
-  const id3Tags = {
-    title: tags.title,
-    artist: tags.artist,
-    album: tags.album,
-    year: tags.year?.toString(),
-    genre: tags.genre,
-    trackNumber: tags.track?.toString(),
-    partOfSet: tags.disc?.toString(),
-    comment: {
-      language: 'eng',
-      text: tags.comment || ''
-    },
-    unsynchronisedLyrics: tags.lyrics ? {
-      language: 'eng',
-      text: tags.lyrics
-    } : undefined,
-    composer: tags.composer,
-    bpm: tags.bpm?.toString(),
-    performerInfo: tags.albumArtist,
-  };
-
-  // Add cover art if provided
-  if (coverArtPath) {
-    id3Tags.image = {
-      mime: 'image/jpeg',
-      type: {
-        id: 3,
-        name: 'front cover'
-      },
-      description: 'Cover',
-      imageBuffer: fs.readFileSync(coverArtPath)
-    };
+// Helper function to get song info from Navidrome
+async function getSongFromNavidrome(songId) {
+  try {
+    const auth = getNavidromeAuth();
+    const params = new URLSearchParams({ ...auth, id: songId });
+    const response = await axios.get(`${NAVIDROME_URL}/rest/getSong?${params}`);
+    return response.data['subsonic-response']?.song;
+  } catch (error) {
+    console.error('Failed to get song from Navidrome:', error.message);
+    return null;
   }
-
-  // Remove undefined values
-  Object.keys(id3Tags).forEach(key => {
-    if (id3Tags[key] === undefined) {
-      delete id3Tags[key];
-    }
-  });
-
-  const success = nodeId3.update(id3Tags, filePath);
-  return success;
 }
 
-// Update song metadata endpoint
-app.post('/api/update-tags', upload.single('coverArt'), async (req, res) => {
+// Convert metadata to node-id3 format
+function convertToID3Tags(metadata, existingTags = {}) {
+  const tags = { ...existingTags };
+  
+  if (metadata.title) tags.title = metadata.title;
+  if (metadata.artist) tags.artist = metadata.artist;
+  if (metadata.album) tags.album = metadata.album;
+  if (metadata.albumArtist) tags.performerInfo = metadata.albumArtist;
+  if (metadata.year) tags.year = metadata.year.toString();
+  if (metadata.genre) tags.genre = metadata.genre;
+  if (metadata.track) tags.trackNumber = metadata.track.toString();
+  if (metadata.disc) tags.partOfSet = metadata.disc.toString();
+  if (metadata.composer) tags.composer = metadata.composer;
+  if (metadata.bpm) tags.bpm = metadata.bpm.toString();
+  if (metadata.comment) tags.comment = { text: metadata.comment };
+  if (metadata.lyrics) tags.unsynchronisedLyrics = { text: metadata.lyrics };
+  
+  return tags;
+}
+
+// Endpoint to update song metadata
+app.post('/api/update-tags', async (req, res) => {
   try {
-    const { songId, metadata, navidromeAuth } = req.body;
+    const { songId, metadata } = req.body;
     
     if (!songId || !metadata) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing songId or metadata' });
     }
-
-    if (!MUSIC_LIBRARY_PATH) {
-      return res.status(500).json({ error: 'MUSIC_LIBRARY_PATH not configured' });
-    }
-
-    // Parse metadata
-    const tags = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
-    const auth = typeof navidromeAuth === 'string' ? JSON.parse(navidromeAuth) : navidromeAuth;
-
-    // Get file path from Navidrome
-    const filePath = await getSongPath(songId, auth);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found', path: filePath });
-    }
-
-    // Get file extension
-    const ext = path.extname(filePath).toLowerCase();
-
-    // Handle cover art
-    const coverArtPath = req.file ? req.file.path : null;
-
-    // Write tags based on file type
-    let success = false;
     
-    if (ext === '.mp3') {
-      success = writeMP3Tags(filePath, tags, coverArtPath);
-    } else {
-      // For non-MP3 files, we'd need different libraries
-      // For now, return an error
-      return res.status(400).json({ 
-        error: 'Unsupported file format',
-        format: ext,
-        message: 'Currently only MP3 files are supported. Support for FLAC, M4A coming soon.'
-      });
+    // Get song info from Navidrome to find file path
+    const song = await getSongFromNavidrome(songId);
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found in Navidrome' });
     }
-
-    // Clean up uploaded cover art
-    if (coverArtPath && fs.existsSync(coverArtPath)) {
-      fs.unlinkSync(coverArtPath);
+    
+    // Construct full file path
+    const filePath = path.join(MUSIC_LIBRARY_PATH, song.path);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      return res.status(404).json({ error: 'Music file not found on disk' });
     }
-
+    
+    // Read existing tags
+    const existingTags = NodeID3.read(filePath);
+    
+    // Merge with new metadata
+    const tags = convertToID3Tags(metadata, existingTags);
+    
+    // Write tags to file
+    const success = NodeID3.write(tags, filePath);
+    
     if (!success) {
       return res.status(500).json({ error: 'Failed to write tags' });
     }
-
+    
     // Trigger Navidrome rescan
-    await triggerNavidromeScan(auth);
-
+    await triggerNavidromeRescan();
+    
     res.json({ 
-      success: true,
+      success: true, 
       message: 'Tags updated successfully',
-      filePath,
-      scanTriggered: true
+      path: song.path,
     });
-
   } catch (error) {
     console.error('Error updating tags:', error);
-    res.status(500).json({ 
-      error: 'Failed to update tags',
-      message: error.message 
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get file metadata (read-only)
-app.get('/api/get-metadata/:songId', async (req, res) => {
+// Endpoint to update cover art
+app.post('/api/update-cover-art', upload.single('coverArt'), async (req, res) => {
+  try {
+    const { songId } = req.body;
+    const coverArtFile = req.file;
+    
+    if (!songId || !coverArtFile) {
+      return res.status(400).json({ error: 'Missing songId or coverArt' });
+    }
+    
+    // Get song info from Navidrome
+    const song = await getSongFromNavidrome(songId);
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found in Navidrome' });
+    }
+    
+    // Construct full file path
+    const filePath = path.join(MUSIC_LIBRARY_PATH, song.path);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      return res.status(404).json({ error: 'Music file not found on disk' });
+    }
+    
+    // Read existing tags
+    const existingTags = NodeID3.read(filePath) || {};
+    
+    // Add cover art
+    existingTags.image = {
+      mime: coverArtFile.mimetype,
+      type: { id: 3, name: 'front cover' },
+      description: 'Cover',
+      imageBuffer: coverArtFile.buffer,
+    };
+    
+    // Write tags to file
+    const success = NodeID3.write(existingTags, filePath);
+    
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to write cover art' });
+    }
+    
+    // Trigger Navidrome rescan
+    await triggerNavidromeRescan();
+    
+    res.json({ 
+      success: true, 
+      message: 'Cover art updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating cover art:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to get current tags
+app.get('/api/get-tags/:songId', async (req, res) => {
   try {
     const { songId } = req.params;
-    const navidromeAuth = req.query;
-
-    const filePath = await getSongPath(songId, navidromeAuth);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
+    
+    // Get song info from Navidrome
+    const song = await getSongFromNavidrome(songId);
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found in Navidrome' });
     }
-
-    const metadata = await parseFile(filePath);
-
-    res.json({
-      success: true,
-      metadata: {
-        common: metadata.common,
-        format: metadata.format,
-        native: metadata.native
-      },
-      filePath
+    
+    // Construct full file path
+    const filePath = path.join(MUSIC_LIBRARY_PATH, song.path);
+    
+    // Read tags
+    const tags = NodeID3.read(filePath);
+    
+    res.json({ 
+      success: true, 
+      tags,
+      path: song.path,
     });
-
   } catch (error) {
-    console.error('Error reading metadata:', error);
-    res.status(500).json({ 
-      error: 'Failed to read metadata',
-      message: error.message 
-    });
+    console.error('Error reading tags:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🎵 Tag Writer Service running on port ${PORT}`);
-  console.log(`📁 Music Library: ${MUSIC_LIBRARY_PATH || 'NOT CONFIGURED'}`);
-  console.log(`🎧 Navidrome: ${NAVIDROME_URL}`);
-  console.log(`\n✅ Ready to accept tag updates!\n`);
-
-  if (!MUSIC_LIBRARY_PATH) {
-    console.warn('⚠️  WARNING: MUSIC_LIBRARY_PATH not set. Please configure in .env file');
+// Endpoint to trigger manual rescan
+app.post('/api/rescan', async (req, res) => {
+  try {
+    const success = await triggerNavidromeRescan();
+    
+    if (success) {
+      res.json({ success: true, message: 'Rescan triggered' });
+    } else {
+      res.status(500).json({ error: 'Failed to trigger rescan' });
+    }
+  } catch (error) {
+    console.error('Error triggering rescan:', error);
+    res.status(500).json({ error: error.message });
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', version: '1.0.0' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Tag Writer Service running on port ${PORT}`);
+  console.log(`Navidrome URL: ${NAVIDROME_URL}`);
+  console.log(`Music Library: ${MUSIC_LIBRARY_PATH}`);
 });
