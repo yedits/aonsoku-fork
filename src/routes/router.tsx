@@ -1,47 +1,48 @@
-import { lazy, Suspense } from 'react'
-import { createHashRouter } from 'react-router-dom'
+import { lazy, Suspense } from 'react';
+import { createHashRouter } from 'react-router-dom';
 
 import {
   AlbumFallback,
   AlbumsFallback,
-} from '@/app/components/fallbacks/album-fallbacks'
-import { ArtistsFallback } from '@/app/components/fallbacks/artists.tsx'
-import { HomeFallback } from '@/app/components/fallbacks/home-fallbacks'
-import { PlaylistFallback } from '@/app/components/fallbacks/playlist-fallbacks'
+} from '@/app/components/fallbacks/album-fallbacks';
+import { ArtistsFallback } from '@/app/components/fallbacks/artists.tsx';
+import { HomeFallback } from '@/app/components/fallbacks/home-fallbacks';
+import { PlaylistFallback } from '@/app/components/fallbacks/playlist-fallbacks';
 import {
   EpisodeFallback,
   LatestEpisodesFallback,
   PodcastFallback,
-} from '@/app/components/fallbacks/podcast-fallbacks'
+} from '@/app/components/fallbacks/podcast-fallbacks';
 import {
   InfinitySongListFallback,
   SongListFallback,
-} from '@/app/components/fallbacks/song-fallbacks'
-import { albumsLoader } from '@/routes/loaders/albumsLoader'
-import { loginLoader } from '@/routes/loginLoader'
-import { podcastsLoader, protectedLoader } from '@/routes/protectedLoader'
-import { ROUTES } from '@/routes/routesList'
+} from '@/app/components/fallbacks/song-fallbacks';
+import { albumsLoader } from '@/routes/loaders/albumsLoader';
+import { loginLoader } from '@/routes/loginLoader';
+import { podcastsLoader, protectedLoader } from '@/routes/protectedLoader';
+import { ROUTES } from '@/routes/routesList';
 
-const BaseLayout = lazy(() => import('@/app/layout/base'))
-const Album = lazy(() => import('@/app/pages/albums/album'))
-const AlbumsList = lazy(() => import('@/app/pages/albums/list'))
-const Artist = lazy(() => import('@/app/pages/artists/artist'))
-const ArtistsList = lazy(() => import('@/app/pages/artists/list'))
-const ErrorPage = lazy(() => import('@/app/pages/error-page'))
-const Login = lazy(() => import('@/app/pages/login'))
-const RegisterPage = lazy(() => import('@/app/features/auth/RegisterPage'))
-const PlaylistsPage = lazy(() => import('@/app/pages/playlists/list'))
-const Playlist = lazy(() => import('@/app/pages/playlists/playlist'))
-const Radios = lazy(() => import('@/app/pages/radios/radios-list'))
-const SongList = lazy(() => import('@/app/pages/songs/songlist'))
-const Home = lazy(() => import('@/app/pages/home'))
-const PodcastsList = lazy(() => import('@/app/pages/podcasts/list'))
-const Podcast = lazy(() => import('@/app/pages/podcasts/podcast'))
-const Episode = lazy(() => import('@/app/pages/podcasts/episode'))
+const BaseLayout = lazy(() => import('@/app/layout/base'));
+const Album = lazy(() => import('@/app/pages/albums/album'));
+const AlbumsList = lazy(() => import('@/app/pages/albums/list'));
+const Artist = lazy(() => import('@/app/pages/artists/artist'));
+const ArtistsList = lazy(() => import('@/app/pages/artists/list'));
+const ErrorPage = lazy(() => import('@/app/pages/error-page'));
+const Login = lazy(() => import('@/app/pages/login'));
+const RegisterPage = lazy(() => import('@/app/features/auth/RegisterPage'));
+const PlaylistsPage = lazy(() => import('@/app/pages/playlists/list'));
+const Playlist = lazy(() => import('@/app/pages/playlists/playlist'));
+const Radios = lazy(() => import('@/app/pages/radios/radios-list'));
+const SongList = lazy(() => import('@/app/pages/songs/songlist'));
+const Home = lazy(() => import('@/app/pages/home'));
+const PodcastsList = lazy(() => import('@/app/pages/podcasts/list'));
+const Podcast = lazy(() => import('@/app/pages/podcasts/podcast'));
+const Episode = lazy(() => import('@/app/pages/podcasts/episode'));
 const LatestEpisodes = lazy(
   () => import('@/app/pages/podcasts/latest-episodes'),
-)
-const ArtGallery = lazy(() => import('@/app/pages/art/gallery'))
+);
+const ArtGallery = lazy(() => import('@/app/pages/art/gallery'));
+const UploadPage = lazy(() => import('@/app/pages/upload'));
 
 export const router = createHashRouter([
   {
@@ -117,6 +118,16 @@ export const router = createHashRouter([
         element: (
           <Suspense fallback={<AlbumsFallback />}>
             <ArtGallery />
+          </Suspense>
+        ),
+      },
+      {
+        id: 'upload',
+        path: ROUTES.UPLOAD,
+        errorElement: <ErrorPage />,
+        element: (
+          <Suspense fallback={<HomeFallback />}>
+            <UploadPage />
           </Suspense>
         ),
       },
@@ -225,4 +236,4 @@ export const router = createHashRouter([
       </Suspense>
     ),
   },
-])
+]);
