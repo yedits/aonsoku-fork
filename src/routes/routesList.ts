@@ -1,5 +1,5 @@
-import { AlbumListType } from '@/types/responses/album'
-import { AlbumsFilters, YearFilter } from '@/utils/albumsFilter'
+import { AlbumListType } from '@/types/responses/album';
+import { AlbumsFilters, YearFilter } from '@/utils/albumsFilter';
 
 const LIBRARY = {
   HOME: '/',
@@ -11,17 +11,17 @@ const LIBRARY = {
   EPISODES: '/library/episodes',
   RADIOS: '/library/radios',
   ART: '/library/art',
-}
+};
 
 const ARTIST = {
   PAGE: (artistId: string) => `${LIBRARY.ARTISTS}/${artistId}`,
   PATH: `${LIBRARY.ARTISTS}/:artistId`,
-}
+};
 
 const ALBUM = {
   PAGE: (albumId: string) => `${LIBRARY.ALBUMS}/${albumId}`,
   PATH: `${LIBRARY.ALBUMS}/:albumId`,
-}
+};
 
 const ALBUMS = {
   GENRE: (genre: string) =>
@@ -37,33 +37,35 @@ const ALBUMS = {
   YEAR: (yearFilter: YearFilter) =>
     `${LIBRARY.ALBUMS}?filter=${AlbumsFilters.ByYear}&yearFilter=${yearFilter}`,
   GENERIC: (filter: AlbumListType) => `${LIBRARY.ALBUMS}?filter=${filter}`,
-}
+};
 
 const SONGS = {
   SEARCH: (query: string) =>
     `${LIBRARY.SONGS}?filter=${AlbumsFilters.Search}&query=${encodeURIComponent(query)}`,
   ARTIST_TRACKS: (id: string, name: string) =>
     `${LIBRARY.SONGS}?artistId=${id}&artistName=${encodeURIComponent(name)}`,
-}
+};
 
 const PLAYLIST = {
   PAGE: (playlistId: string) => `${LIBRARY.PLAYLISTS}/${playlistId}`,
   PATH: `${LIBRARY.PLAYLISTS}/:playlistId`,
-}
+};
 
 const PODCASTS = {
   PAGE: (podcastId: string) => `${LIBRARY.PODCASTS}/${podcastId}`,
   PATH: `${LIBRARY.PODCASTS}/:podcastId`,
-}
+};
 
 const EPISODES = {
   PAGE: (episodeId: string) => `${LIBRARY.EPISODES}/${episodeId}`,
   PATH: `${LIBRARY.EPISODES}/:episodeId`,
   LATEST: `${LIBRARY.EPISODES}/latest`,
-}
+};
 
-const SERVER_CONFIG = '/server-config'
-const REGISTER = '/register'
+const UPLOAD = '/upload';
+
+const SERVER_CONFIG = '/server-config';
+const REGISTER = '/register';
 
 export const ROUTES = {
   LIBRARY,
@@ -74,6 +76,7 @@ export const ROUTES = {
   PLAYLIST,
   PODCASTS,
   EPISODES,
+  UPLOAD,
   SERVER_CONFIG,
   REGISTER,
-}
+};

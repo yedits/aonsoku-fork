@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Aonsoku Upload Service
+  aonsoku-upload:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aonsoku-upload
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount your Navidrome music library
+      - /path/to/music:/music
+      # Temporary upload directory
+      - /tmp/aonsoku-uploads:/tmp/uploads
+    environment:
+      - PORT=3001
+      - UPLOAD_DIR=/tmp/uploads
+      - MUSIC_LIBRARY_PATH=/music
+      - MAX_FILE_SIZE=104857600
+      # Point to your Navidrome instance
+      - NAVIDROME_URL=http://navidrome:4533
+      - NAVIDROME_USERNAME=admin
+      - NAVIDROME_PASSWORD=your_password
+    restart: unless-stopped
+    networks:
+      - aonsoku-network
+
+  # Optional: Run Aonsoku frontend alongside
+  # aonsoku:
+  #   image: ghcr.io/victoralvesf/aonsoku:latest
+  #   container_name: aonsoku
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - SERVER_URL=http://navidrome:4533
+  #     - VITE_UPLOAD_SERVICE_URL=http://aonsoku-upload:3001
+  #   restart: unless-stopped
+  #   networks:
+  #     - aonsoku-network
+
+networks:
+  aonsoku-network:
+    driver: bridge
