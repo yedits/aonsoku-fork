@@ -29,6 +29,7 @@ const Artist = lazy(() => import('@/app/pages/artists/artist'))
 const ArtistsList = lazy(() => import('@/app/pages/artists/list'))
 const ErrorPage = lazy(() => import('@/app/pages/error-page'))
 const Login = lazy(() => import('@/app/pages/login'))
+const RegisterPage = lazy(() => import('@/app/features/auth/RegisterPage'))
 const PlaylistsPage = lazy(() => import('@/app/pages/playlists/list'))
 const Playlist = lazy(() => import('@/app/pages/playlists/playlist'))
 const Radios = lazy(() => import('@/app/pages/radios/radios-list'))
@@ -40,6 +41,7 @@ const Episode = lazy(() => import('@/app/pages/podcasts/episode'))
 const LatestEpisodes = lazy(
   () => import('@/app/pages/podcasts/latest-episodes'),
 )
+const ArtGallery = lazy(() => import('@/app/pages/art/gallery'))
 
 export const router = createHashRouter([
   {
@@ -105,6 +107,16 @@ export const router = createHashRouter([
         element: (
           <Suspense fallback={<SongListFallback />}>
             <Radios />
+          </Suspense>
+        ),
+      },
+      {
+        id: 'art',
+        path: ROUTES.LIBRARY.ART,
+        errorElement: <ErrorPage />,
+        element: (
+          <Suspense fallback={<AlbumsFallback />}>
+            <ArtGallery />
           </Suspense>
         ),
       },
@@ -200,6 +212,16 @@ export const router = createHashRouter([
     element: (
       <Suspense>
         <Login />
+      </Suspense>
+    ),
+  },
+  {
+    id: 'register',
+    path: ROUTES.REGISTER,
+    loader: loginLoader,
+    element: (
+      <Suspense>
+        <RegisterPage />
       </Suspense>
     ),
   },

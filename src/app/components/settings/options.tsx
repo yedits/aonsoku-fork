@@ -1,9 +1,5 @@
 import {
   CircleUserRound,
-  EarthLock,
-  FileText,
-  Globe,
-  Headphones,
   LaptopIcon,
   Paintbrush,
 } from 'lucide-react'
@@ -21,12 +17,8 @@ import { isDesktop } from '@/utils/desktop'
 
 export type SettingsOptions =
   | 'appearance'
-  | 'language'
-  | 'audio'
-  | 'content'
   | 'accounts'
   | 'desktop'
-  | 'privacy'
 
 interface OptionsData {
   id: SettingsOptions
@@ -38,11 +30,7 @@ const desktopOption: OptionsData = { id: 'desktop', icon: LaptopIcon }
 
 const options: OptionsData[] = [
   { id: 'appearance', icon: Paintbrush },
-  { id: 'language', icon: Globe },
-  { id: 'audio', icon: Headphones },
-  { id: 'content', icon: FileText },
   ...(isDesktop() ? [accountsOption, desktopOption] : []),
-  { id: 'privacy', icon: EarthLock },
 ]
 
 export function SettingsOptions() {

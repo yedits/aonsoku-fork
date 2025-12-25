@@ -12,10 +12,11 @@
     "library": "Library",
     "artists": "Artists",
     "songs": "Songs",
-    "albums": "Albums",
+    "albums": "Comps",
     "playlists": "Playlists",
     "radios": "Radios",
     "podcasts": "Podcasts",
+    "art": "Art",
     "emptyPlaylist": "No playlists created yet"
   },
   "menu": {
@@ -135,7 +136,8 @@
     }
   },
   "album": {
-    "headline": "Album",
+    "headline": "Comp",
+    "singleHeadline": "Single",
     "buttons": {
       "like": "Like {{name}}",
       "dislike": "Remove like from {{name}}"
@@ -152,11 +154,11 @@
     },
     "list": {
       "header": {
-        "albumsByArtist": "Albums by {{artist}}"
+        "albumsByArtist": "Comps by {{artist}}"
       },
       "empty": {
-        "title": "Oops, no albums here!",
-        "info": "Looks like there are no albums with the current filter.",
+        "title": "Oops, no comps here!",
+        "info": "Looks like there are no comps with the current filter.",
         "action": "Maybe try tweaking the filters?"
       },
       "genre": {
@@ -179,7 +181,7 @@
         "search": "Search"
       },
       "search": {
-        "placeholder": "Search albums…"
+        "placeholder": "Search comps…"
       }
     },
     "table": {
@@ -194,11 +196,11 @@
       "options": "More options for {{artist}}"
     },
     "info": {
-      "albumsCount_one": "{{count}} album",
-      "albumsCount_other": "{{count}} albums"
+      "albumsCount_one": "{{count}} comp",
+      "albumsCount_other": "{{count}} comps"
     },
     "topSongs": "Popular",
-    "recentAlbums": "Recent albums",
+    "recentAlbums": "Recent comps",
     "relatedArtists": "Related artists"
   },
   "podcasts": {
@@ -286,10 +288,10 @@
   "table": {
     "columns": {
       "title": "Title",
-      "albumArtist": "Album artist",
+      "albumArtist": "Comp artist",
       "artist": "Artist",
       "contributors": "Contributors",
-      "album": "Album",
+      "album": "Comp",
       "year": "Year",
       "duration": "Duration",
       "plays": "Plays",
@@ -298,7 +300,7 @@
       "bitrate": "Bitrate",
       "quality": "Quality",
       "name": "Name",
-      "albumCount": "Album count",
+      "albumCount": "Comp count",
       "songCount": "Song count",
       "comment": "Comment",
       "public": "Public",
@@ -312,8 +314,8 @@
       "discNumber": "Disc number",
       "trackGain": "Track gain",
       "trackPeak": "Track peak",
-      "albumGain": "Album gain",
-      "albumPeak": "Album peak",
+      "albumGain": "Comp gain",
+      "albumPeak": "Comp peak",
       "channelCount": "Channel count",
       "samplingRate": "Sampling rate",
       "bitDepth": "Bit depth"
@@ -387,7 +389,7 @@
     }
   },
   "command": {
-    "inputPlaceholder": "Search for an album, artist or song",
+    "inputPlaceholder": "Search for a comp, artist or song",
     "noResults": "No results found.",
     "commands": {
       "heading": "Commands",
@@ -640,7 +642,7 @@
         "mode": {
           "label": "Mode",
           "track": "Track gain",
-          "album": "Album gain"
+          "album": "Comp gain"
         },
         "preAmp": "PreAmp (dB)",
         "defaultGain": {

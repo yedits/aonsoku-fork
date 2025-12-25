@@ -10,6 +10,7 @@ const LIBRARY = {
   PODCASTS: '/library/podcasts',
   EPISODES: '/library/episodes',
   RADIOS: '/library/radios',
+  ART: '/library/art',
 }
 
 const ARTIST = {
@@ -62,6 +63,7 @@ const EPISODES = {
 }
 
 const SERVER_CONFIG = '/server-config'
+const REGISTER = '/register'
 
 export const ROUTES = {
   LIBRARY,
@@ -73,4 +75,5 @@ export const ROUTES = {
   PODCASTS,
   EPISODES,
   SERVER_CONFIG,
+  REGISTER,
 }
