@@ -5,8 +5,12 @@ export interface MusicMetadata {
   albumArtist?: string;
   year?: number;
   track?: number;
+  disc?: number;
   genre?: string;
   comment?: string;
+  lyrics?: string;
+  composer?: string;
+  bpm?: number;
   coverArt?: string; // base64 encoded image
 }
 
@@ -18,6 +22,9 @@ export interface UploadFile {
   status: 'pending' | 'uploading' | 'success' | 'error';
   progress: number;
   error?: string;
+  duration?: number;
+  bitrate?: number;
+  order?: number; // For queue management
 }
 
 export interface UploadResponse {
@@ -45,4 +52,20 @@ export interface BatchUploadFile {
   file: File;
   metadata?: MusicMetadata;
   coverArt?: File;
+}
+
+export interface UploadHistory {
+  id: string;
+  filename: string;
+  uploadDate: string;
+  status: 'success' | 'error';
+  metadata?: MusicMetadata;
+}
+
+export type UploadMode = 'quick' | 'detailed' | 'batch';
+
+export interface GenreOption {
+  value: string;
+  label: string;
+  category?: string;
 }
