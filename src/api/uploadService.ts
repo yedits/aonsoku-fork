@@ -2,7 +2,79 @@ import type { MusicMetadata, UploadResponse, MetadataResponse } from '@/types/up
 
 const UPLOAD_SERVICE_URL = import.meta.env.VITE_UPLOAD_SERVICE_URL || 'http://localhost:3002';
 
+export interface UploadHistoryItem {
+  id: string;
+  originalName: string;
+  path: string;
+  size: number;
+  artist?: string;
+  album?: string;
+  title?: string;
+  uploadedAt: string;
+}
+
 export const uploadService = {
+  /**
+   * Get upload history
+   */
+  async getHistory(limit: number = 50): Promise<UploadHistoryItem[]> {
+    const response = await fetch(`${UPLOAD_SERVICE_URL}/api/upload/history?limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch upload history');
+    }
+
+    const data = await response.json();
+    return data.uploads;
+  },
+
+  /**
+   * Read metadata from an existing file
+   */
+  async readMetadata(filePath: string): Promise<MetadataResponse> {
+    const response = await fetch(`${UPLOAD_SERVICE_URL}/api/metadata/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to read metadata');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Update metadata for an existing file
+   */
+  async updateMetadata(
+    filePath: string,
+    metadata: MusicMetadata,
+    coverArt?: File
+  ): Promise<{ success: boolean; newPath: string }> {
+    const formData = new FormData();
+    formData.append('filePath', filePath);
+    formData.append('metadata', JSON.stringify(metadata));
+    
+    if (coverArt) {
+      formData.append('coverart', coverArt);
+    }
+
+    const response = await fetch(`${UPLOAD_SERVICE_URL}/api/metadata/update`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update metadata');
+    }
+
+    return response.json();
+  },
+
   /**
    * Extract metadata from an audio file
    */
@@ -46,7 +118,6 @@ export const uploadService = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      // Progress tracking
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable && onProgress) {
           const progress = (e.loaded / e.total) * 100;

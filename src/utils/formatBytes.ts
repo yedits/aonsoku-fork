@@ -1,30 +1,11 @@
-export function formatBytes(bytes: number, decimals = 2) {
-  if (bytes === 0) return '0 Bytes'
+export function formatBytes(bytes: number, decimals: number = 2): string {
+  if (bytes === 0) return '0 Bytes';
 
-  const k = 1024
-  // Ensure the number of decimals is at least 0
-  const dm = Math.max(0, decimals)
-  const sizes = [
-    'Bytes',
-    'KiB',
-    'MiB',
-    'GiB',
-    'TiB',
-    'PiB',
-    'EiB',
-    'ZiB',
-    'YiB',
-  ]
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 
-  // Calculate the sizes index based on logarithmic scale
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  const value = parseFloat((bytes / Math.pow(k, i)).toFixed(dm))
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  // Return the formatted value with the correct number of decimal places
-  const formattedValue = value.toLocaleString('en', {
-    minimumFractionDigits: dm,
-    maximumFractionDigits: dm,
-  })
-
-  return `${formattedValue} ${sizes[i]}`
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
