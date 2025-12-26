@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Palette, Sparkles, Eye, Save, Plus } from 'lucide-react'
+import { Palette, Sparkles, Eye, Save } from 'lucide-react'
 import { Button } from '@/app/components/ui/button'
 import {
   Dialog,
@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/app/components/ui/dialog'
 import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
@@ -92,7 +91,6 @@ const colorPresets = [
 
 // Function to extract colors from a built-in theme by applying it temporarily
 const getThemeColors = (themeName: string): Partial<ThemeColors> => {
-  // Create a temporary element with the theme class
   const temp = document.createElement('div')
   temp.className = themeName
   temp.style.display = 'none'
@@ -142,8 +140,7 @@ interface ThemeCreatorDialogProps {
   onOpenChange?: (open: boolean) => void
 }
 
-export function ThemeCreatorDialog({ editThemeId, onEditComplete, open: controlledOpen, onOpenChange }: ThemeCreatorDialogProps = {}) {
-  const [internalOpen, setInternalOpen] = useState(false)
+export function ThemeCreatorDialog({ editThemeId, onEditComplete, open, onOpenChange }: ThemeCreatorDialogProps) {
   const [themeName, setThemeName] = useState('')
   const [colors, setColors] = useState<ThemeColors>(defaultColors)
   const [step, setStep] = useState<'preset' | 'customize'>('preset')
@@ -152,22 +149,8 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete, open: controll
   const { addCustomTheme, updateCustomTheme, getCustomTheme } = useCustomTheme()
   const { setTheme } = useTheme()
 
-  // Use controlled or internal open state
-  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
-  const setIsOpen = (open: boolean) => {
-    if (onOpenChange) {
-      onOpenChange(open)
-    } else {
-      setInternalOpen(open)
-    }
-  }
-
-  // Auto-open when editThemeId is provided
-  useEffect(() => {
-    if (editThemeId) {
-      setIsOpen(true)
-    }
-  }, [editThemeId])
+  const isOpen = open || false
+  const setIsOpen = onOpenChange || (() => {})
 
   // Load theme for editing
   useEffect(() => {
@@ -263,25 +246,25 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete, open: controll
     setStep('customize')
   }
 
+  // Built-in themes to show as starting points
   const builtInThemes = [
     { id: 'github-dark', name: 'GitHub Dark' },
     { id: 'discord', name: 'Discord' },
     { id: 'one-dark', name: 'One Dark' },
-    { id: 'dracula', name: 'Dracula' },
-    { id: 'shades-of-purple', name: 'Shades of Purple' },
-    { id: 'catppuccin-mocha', name: 'Catppuccin Mocha' },
+    { id: 'night-owl-light', name: 'White Mode' },
+    { id: 'noctis-lilac', name: 'Lilac' },
+    { id: 'dracula', name: 'Amethyst' },
+    { id: 'shades-of-purple', name: 'Purple & Yellow' },
+    { id: 'catppuccin-mocha', name: 'Purple' },
+    { id: 'nuclear-dark', name: 'Cyberpunk' },
+    { id: 'marmalade-beaver', name: 'Dark Purple & Yellow' },
+    { id: 'bearded-solarized', name: 'Forest Blue' },
+    { id: 'achiever', name: 'White & Orange' },
+    { id: 'tinacious-design', name: 'White & Pink' },
   ]
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {!editThemeId && (
-        <DialogTrigger asChild>
-          <Button variant="default" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Theme
-          </Button>
-        </DialogTrigger>
-      )}
       <DialogContent className="max-w-[95vw] lg:max-w-5xl max-h-[90vh] p-0 flex flex-col">
         <DialogHeader className="px-4 lg:px-6 pt-4 lg:pt-6 pb-3 lg:pb-4">
           <DialogTitle className="flex items-center gap-2 text-xl lg:text-2xl">
