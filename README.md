@@ -1,6 +1,6 @@
 # yedits.net
 
-A modern desktop and web client for Navidrome music servers with advanced features including music upload, metadata editing, YouTube integration, and comprehensive media management.
+A modern desktop and web client for Navidrome music servers with advanced features including user registration, music upload, metadata editing, YouTube integration, and comprehensive media management.
 
 ## Quick Start - One Command Development
 
@@ -11,6 +11,7 @@ A modern desktop and web client for Navidrome music servers with advanced featur
 npm install
 
 # All services
+cd auth-service && npm install && cd ..
 cd tag-writer-service && npm install && cd ..
 cd upload-service && npm install && cd ..
 ```
@@ -37,10 +38,11 @@ UPLOAD_MUSIC_PATH=/your/music/path
 npm run dev
 ```
 
-That's it! One command starts all 3 services:
+That's it! One command starts all 4 services:
 - **Main App**: http://localhost:3000 (Blue)
 - **Tag Writer**: http://localhost:3001 (Yellow)
 - **Upload Service**: http://localhost:3002 (Green)
+- **Auth Service**: http://localhost:3005 (Magenta)
 
 Stop everything with `Ctrl+C`.
 
@@ -50,6 +52,8 @@ Stop everything with `Ctrl+C`.
 yedits-net/
   .env                    <-- ONLY configure this file
   .env.example            <-- Template (safe to commit)
+  auth-service/
+    .env.loader.cjs       <-- Reads from parent .env
   tag-writer-service/
     .env.loader.cjs       <-- Reads from parent .env
   upload-service/
@@ -80,6 +84,7 @@ yedits-net/
 
 ### Core Features
 - Modern web and desktop client for Navidrome servers
+- **Self-service user registration** - Create accounts without admin intervention
 - Support for Navidrome and LMS servers
 - Responsive design for all screen sizes
 - Dark/light theme support
@@ -87,6 +92,14 @@ yedits-net/
 - Comprehensive playlist management
 - Advanced search and filtering
 - Keyboard shortcuts
+
+### User Registration (Auth Service)
+- ✅ Self-service account creation
+- ✅ Creates users directly in Navidrome
+- ✅ Username and email validation
+- ✅ Password strength requirements (8+ characters)
+- ✅ Duplicate username detection
+- ✅ Automatic redirect to login after registration
 
 ### Music Metadata Editor (Tag Writer Service)
 - ✅ Write ID3v2.4 tags to MP3 files
@@ -123,6 +136,7 @@ yedits-net/
 ### Prerequisites
 - Node.js 16+ and npm
 - A running Navidrome server
+- **Admin access** to Navidrome (for user registration)
 
 ### Setup
 
@@ -135,6 +149,7 @@ cd aonsoku-fork
 2. Install all dependencies:
 ```bash
 npm install
+cd auth-service && npm install && cd ..
 cd tag-writer-service && npm install && cd ..
 cd upload-service && npm install && cd ..
 ```
@@ -175,9 +190,14 @@ VITE_YOUTUBE_API_KEY=your_api_key
 PORT=3000
 TAG_WRITER_PORT=3001
 UPLOAD_PORT=3002
+AUTH_PORT=3005
+
+# Auth service URL
+VITE_ACCOUNT_API_URL=http://localhost:3005/api
 
 # CORS origins
 TAG_WRITER_CORS_ORIGINS=http://localhost:3000
+AUTH_FRONTEND_URL=http://localhost:3000
 ```
 
 ### How It Works
@@ -188,6 +208,7 @@ Each service directory has a `.env.loader.cjs` file that:
 3. Keeps all services in sync
 
 **Variables are prefixed by service:**
+- `AUTH_*` → Auth Service
 - `TAG_WRITER_*` → Tag Writer Service
 - `UPLOAD_*` → Upload Service
 - `VITE_*` → Main Frontend App
@@ -195,6 +216,45 @@ Each service directory has a `.env.loader.cjs` file that:
 See `.env.example` for complete documentation.
 
 ## Service APIs
+
+### Auth Service API
+
+Base URL: `http://localhost:3005`
+
+#### Register New User
+**POST** `/api/auth/register`
+
+```json
+{
+  "username": "newuser",
+  "password": "securepass123",
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "user": {
+    "username": "newuser",
+    "email": "user@example.com"
+  }
+}
+```
+
+#### Health Check
+**GET** `/api/health`
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "service": "aonsoku-auth-service",
+  "version": "1.0.0"
+}
+```
 
 ### Tag Writer Service API
 
@@ -287,6 +347,31 @@ Base URL: `http://localhost:3001`
 
 ## Feature Guides
 
+### User Registration
+
+#### How It Works
+
+1. User visits registration page at `/#/register`
+2. Fills in username, email, and password
+3. Frontend validates input (3+ char username, 8+ char password)
+4. Auth service creates user in Navidrome via admin API
+5. User is redirected to login page
+6. User can now log in with their credentials
+
+#### Setup Requirements
+
+1. **Admin Credentials**: Auth service needs Navidrome admin username/password
+2. **Service Running**: Auth service must be running on port 3005
+3. **Environment**: `NAVIDROME_USERNAME` and `NAVIDROME_PASSWORD` set in `.env`
+
+#### Security Notes
+
+- Auth service uses admin credentials to create users
+- Passwords are validated (minimum 8 characters)
+- Usernames must be 3-20 characters (letters, numbers, `_`, `-`)
+- Duplicate usernames are rejected
+- Passwords are stored securely in Navidrome's database
+
 ### Music Metadata Editing
 
 #### Quick Start
@@ -374,6 +459,7 @@ VITE_YOUTUBE_API_KEY=your_key
 # Development
 npm run dev              # Run all services (recommended)
 npm run dev:frontend     # Just main app
+npm run dev:auth         # Just auth service
 npm run dev:tag-writer   # Just tag writer
 npm run dev:upload       # Just upload service
 
@@ -415,6 +501,7 @@ npm run build:linux      # Build for Linux
 | Main App | 3000 | Blue |
 | Tag Writer | 3001 | Yellow |
 | Upload | 3002 | Green |
+| **Auth** | **3005** | **Magenta** |
 | Navidrome | 4533 | (external) |
 
 ## Docker Deployment
@@ -435,39 +522,7 @@ services:
       - SERVER_URL=http://your-navidrome:4533
       - VITE_UPLOAD_SERVICE_URL=http://upload-service:3002
       - VITE_TAG_WRITER_SERVICE_URL=http://tag-writer:3001
-```
-
-### Tag Writer Service (Docker)
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-
-EXPOSE 3001
-
-CMD ["node", "server.js"]
-```
-
-Build and run:
-
-```bash
-cd tag-writer-service
-docker build -t navidrome-tag-writer .
-docker run -d \
-  -p 3001:3001 \
-  -v /path/to/music:/music \
-  -e NAVIDROME_URL=http://navidrome:4533 \
-  -e NAVIDROME_USERNAME=admin \
-  -e NAVIDROME_PASSWORD=yourpassword \
-  -e MUSIC_LIBRARY_PATH=/music \
-  --name tag-writer \
-  navidrome-tag-writer
+      - VITE_ACCOUNT_API_URL=http://auth-service:3005/api
 ```
 
 ### Complete Docker Compose
@@ -483,6 +538,18 @@ services:
       - /path/to/music:/music
     environment:
       ND_SCANSCHEDULE: "@every 1m"
+  
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NAVIDROME_URL=http://navidrome:4533
+      - NAVIDROME_USERNAME=admin
+      - NAVIDROME_PASSWORD=yourpassword
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - navidrome
   
   tag-writer:
     build: ./tag-writer-service
@@ -522,8 +589,10 @@ services:
       - SERVER_URL=http://navidrome:4533
       - VITE_TAG_WRITER_SERVICE_URL=http://tag-writer:3001
       - VITE_UPLOAD_SERVICE_URL=http://upload-service:3002
+      - VITE_ACCOUNT_API_URL=http://auth-service:3005/api
     depends_on:
       - navidrome
+      - auth-service
       - tag-writer
       - upload-service
 ```
@@ -575,7 +644,7 @@ sudo codesign --force --deep --sign - /Applications/yedits.net.app
 **Check if ports are in use:**
 ```bash
 # Linux/Mac
-lsof -i :3000,3001,3002
+lsof -i :3000,3001,3002,3005
 
 # Windows
 netstat -ano | findstr :3000
@@ -584,9 +653,26 @@ netstat -ano | findstr :3000
 **Run services individually to see errors:**
 ```bash
 npm run dev:frontend
+npm run dev:auth
 npm run dev:tag-writer
 npm run dev:upload
 ```
+
+### Registration Issues
+
+**"Cannot connect to auth service":**
+- Ensure auth service is running: `npm run dev:auth`
+- Check port 3005 is available: `lsof -i :3005`
+- Verify `VITE_ACCOUNT_API_URL` in `.env` is set correctly
+
+**"Failed to authenticate with Navidrome as admin":**
+- Check `NAVIDROME_USERNAME` and `NAVIDROME_PASSWORD` are correct
+- Verify admin account exists in Navidrome
+- Test connection: `curl http://localhost:3005/api/test-navidrome`
+
+**"Username already exists":**
+- User tried to register with an existing username
+- Choose a different username
 
 ### .env File Issues
 
@@ -650,9 +736,10 @@ Make sure:
 
 ### CORS Errors
 
-Update `TAG_WRITER_CORS_ORIGINS` in `.env`:
+Update CORS origins in `.env`:
 ```env
 TAG_WRITER_CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+AUTH_FRONTEND_URL=http://localhost:3000
 ```
 
 ### Cannot Connect to Navidrome
@@ -676,7 +763,13 @@ git status  # Should NOT show .env
 
 **Rotate credentials if exposed:**
 - YouTube API key
-- Navidrome password
+- Navidrome admin password
+
+**Auth Service Security:**
+- Requires admin credentials to create users
+- Only allows registration from configured frontend URL (CORS)
+- Validates all input before creating users
+- Does not store passwords (handled by Navidrome)
 
 ## License
 
