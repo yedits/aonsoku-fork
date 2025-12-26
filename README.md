@@ -13,7 +13,6 @@ npm install
 # All services
 cd tag-writer-service && npm install && cd ..
 cd upload-service && npm install && cd ..
-cd auth-service && npm install && cd ..
 ```
 
 ### 2. Create Your Configuration
@@ -38,11 +37,12 @@ UPLOAD_MUSIC_PATH=/your/music/path
 npm run dev
 ```
 
-That's it! One command starts all 4 services:
-- Main App: http://localhost:3000 (Blue)
-- Tag Writer: http://localhost:3001 (Yellow)
-- Upload Service: http://localhost:3002 (Green)
-- Auth Service: http://localhost:3005 (Magenta)
+That's it! One command starts all 3 services:
+- **Main App**: http://localhost:3000 (Blue)
+- **Tag Writer**: http://localhost:3001 (Yellow)
+- **Upload Service**: http://localhost:3002 (Green)
+
+*Note: Auth service is planned but not yet implemented.*
 
 Stop everything with `Ctrl+C`.
 
@@ -53,14 +53,15 @@ aonsoku-fork/
   .env                    <-- ONLY configure this file
   .env.example            <-- Template (safe to commit)
   tag-writer-service/
-    .env.loader.js        <-- Reads from parent .env
+    .env.loader.cjs       <-- Reads from parent .env
   upload-service/
-    .env.loader.js        <-- Reads from parent .env
-  auth-service/
-    .env.loader.js        <-- Reads from parent .env
+    .env.loader.cjs       <-- Reads from parent .env
 ```
 
-**Delete any other .env files** in service directories - they're not needed.
+**Important:** 
+- Never create .env files in service directories
+- All configuration happens in the root .env
+- The .env.loader.cjs files automatically map variables
 
 ---
 
@@ -129,7 +130,6 @@ cd aonsoku-fork
 npm install
 cd tag-writer-service && npm install && cd ..
 cd upload-service && npm install && cd ..
-cd auth-service && npm install && cd ..
 ```
 
 3. Configure environment:
@@ -164,11 +164,12 @@ UPLOAD_MUSIC_PATH=/path/to/music
 # YouTube integration
 VITE_YOUTUBE_API_KEY=your_api_key
 
-# Discord OAuth
-AUTH_DISCORD_CLIENT_ID=your_client_id
-AUTH_DISCORD_CLIENT_SECRET=your_secret
+# Service ports (defaults shown)
+TAG_WRITER_PORT=3001
+UPLOAD_PORT=3002
 
-# JWT secrets (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+# Generate JWT secrets with:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 AUTH_JWT_SECRET=your_random_secret
 AUTH_JWT_REFRESH_SECRET=your_random_secret
 AUTH_SESSION_SECRET=your_random_secret
@@ -176,7 +177,7 @@ AUTH_SESSION_SECRET=your_random_secret
 
 ### How It Works
 
-Each service directory has a `.env.loader.js` file that:
+Each service directory has a `.env.loader.cjs` file that:
 1. Loads the root `.env` file
 2. Maps variables to service-specific names
 3. Keeps all services in sync
@@ -184,7 +185,7 @@ Each service directory has a `.env.loader.js` file that:
 **Variables are prefixed by service:**
 - `TAG_WRITER_*` → Tag Writer Service
 - `UPLOAD_*` → Upload Service
-- `AUTH_*` → Auth Service
+- `AUTH_*` → Auth Service (planned)
 - `VITE_*` → Main Frontend App
 
 See `.env.example` for complete documentation.
@@ -261,7 +262,6 @@ npm run dev              # Run all services (recommended)
 npm run dev:frontend     # Just main app
 npm run dev:tag-writer   # Just tag writer
 npm run dev:upload       # Just upload service
-npm run dev:auth         # Just auth service
 
 # Building
 npm run build            # Build for production
@@ -294,13 +294,13 @@ npm run build:linux      # Build for Linux
 
 ### Port Allocation
 
-| Service | Port | Terminal Color |
-|---------|------|----------------|
-| Main App | 3000 | Blue |
-| Tag Writer | 3001 | Yellow |
-| Upload | 3002 | Green |
-| Auth | 3005 | Magenta |
-| Navidrome | 4533 | (external) |
+| Service | Port | Terminal Color | Status |
+|---------|------|----------------|--------|
+| Main App | 3000 | Blue | ✅ Active |
+| Tag Writer | 3001 | Yellow | ✅ Active |
+| Upload | 3002 | Green | ✅ Active |
+| Auth | 3005 | Magenta | 🚧 Planned |
+| Navidrome | 4533 | (external) | ✅ Active |
 
 ## Docker Deployment
 
@@ -368,7 +368,7 @@ sudo codesign --force --deep --sign - /Applications/Aonsoku.app
 **Check if ports are in use:**
 ```bash
 # Linux/Mac
-lsof -i :3000,3001,3002,3005
+lsof -i :3000,3001,3002
 
 # Windows
 netstat -ano | findstr :3000
@@ -379,15 +379,27 @@ netstat -ano | findstr :3000
 npm run dev:frontend
 npm run dev:tag-writer
 npm run dev:upload
-npm run dev:auth
 ```
+
+### .env File Issues
+
+**File not found in IDE/Explorer:**
+- This is normal on Windows + WSL
+- Use `nano .env` or `code .env` to edit
+- Or create it from Windows side (PowerShell: `Copy-Item .env.example .env`)
+
+**Variables not loading:**
+- Verify `.env` exists at root: `ls -la .env`
+- Check for typos in variable names
+- Restart services after editing .env
 
 ### Missing .env Variables
 
 Make sure:
-1. `.env` file exists at root
+1. `.env` file exists at root (not in service directories)
 2. All required variables are set (see `.env.example`)
-3. No typos in variable names
+3. No extra spaces around `=` signs
+4. Values with spaces are quoted: `PATH="/my path/music"`
 
 ### Upload Service Issues
 
