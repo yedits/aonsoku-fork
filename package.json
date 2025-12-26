@@ -10,7 +10,12 @@
   "type": "module",
   "productName": "Aonsoku",
   "scripts": {
-    "dev": "vite --port 3000",
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently --kill-others --names \"APP,TAG,UPLOAD,AUTH\" --prefix-colors \"blue,yellow,green,magenta\" \"npm run dev:frontend\" \"npm run dev:tag-writer\" \"npm run dev:upload\" \"npm run dev:auth\"",
+    "dev:frontend": "vite --port 3000",
+    "dev:tag-writer": "cd tag-writer-service && node -r ./.env.loader.js server.js",
+    "dev:upload": "cd upload-service && node -r ./.env.loader.js src/index.js",
+    "dev:auth": "cd auth-service && node -r ./.env.loader.js src/server.js",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "biome lint",
@@ -74,6 +79,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "discord-rpc": "^4.0.1",
+    "dotenv": "^16.4.7",
     "electron-dl": "^4.0.0",
     "electron-store": "^10.0.1",
     "electron-updater": "^6.6.2",
@@ -129,6 +135,7 @@
     "@types/react-lazy-load-image-component": "^1.6.4",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.2",
     "cypress": "^13.17.0",
     "cypress-real-events": "^1.14.0",
     "electron": "^39.2.4",
@@ -142,7 +149,11 @@
     "vite": "^6.2.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["cypress", "electron", "esbuild"]
+    "onlyBuiltDependencies": [
+      "cypress",
+      "electron",
+      "esbuild"
+    ]
   },
   "electron": {
     "window": {

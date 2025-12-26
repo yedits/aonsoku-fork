@@ -27,8 +27,26 @@ dist-ssr
 cypress/screenshots
 cypress/videos
 
-# Docker env file
-env-config.js
+# Environment files - NEVER COMMIT THESE!
 .env
+.env.local
+.env.*.local
+.env.development
+.env.production
+env-config.js
+
+# Service-specific env files - NEVER COMMIT THESE!
+tag-writer-service/.env
+upload-service/.env
+auth-service/.env
+account-service/.env
+
+# BUT keep example files and loaders
+!.env.example
+!**/.env.example
+!**/.env.loader.js
+
+# Auth service database
+auth-service/data/
 
 out
