@@ -90,6 +90,36 @@ const colorPresets = [
   },
 ]
 
+// Function to extract colors from a built-in theme by applying it temporarily
+const getThemeColors = (themeName: string): Partial<ThemeColors> => {
+  // Create a temporary element with the theme class
+  const temp = document.createElement('div')
+  temp.className = themeName
+  temp.style.display = 'none'
+  document.body.appendChild(temp)
+  
+  const computedStyle = getComputedStyle(temp)
+  const extractColor = (varName: string) => {
+    const value = computedStyle.getPropertyValue(`--${varName}`).trim()
+    return value || undefined
+  }
+  
+  const colors: Partial<ThemeColors> = {
+    background: extractColor('background'),
+    backgroundForeground: extractColor('background-foreground'),
+    foreground: extractColor('foreground'),
+    primary: extractColor('primary'),
+    secondary: extractColor('secondary'),
+    muted: extractColor('muted'),
+    accent: extractColor('accent'),
+    border: extractColor('border'),
+    input: extractColor('input'),
+  }
+  
+  document.body.removeChild(temp)
+  return colors
+}
+
 const baseColors: Array<{ key: keyof ThemeColors; label: string; description: string }> = [
   { key: 'background', label: 'Background', description: 'Main app background' },
   { key: 'backgroundForeground', label: 'Content Background', description: 'Content area (blue background)' },
@@ -108,10 +138,12 @@ const uiColors: Array<{ key: keyof ThemeColors; label: string; description: stri
 interface ThemeCreatorDialogProps {
   editThemeId?: string | null
   onEditComplete?: () => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreatorDialogProps = {}) {
-  const [open, setOpen] = useState(false)
+export function ThemeCreatorDialog({ editThemeId, onEditComplete, open: controlledOpen, onOpenChange }: ThemeCreatorDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const [themeName, setThemeName] = useState('')
   const [colors, setColors] = useState<ThemeColors>(defaultColors)
   const [step, setStep] = useState<'preset' | 'customize'>('preset')
@@ -120,9 +152,26 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
   const { addCustomTheme, updateCustomTheme, getCustomTheme } = useCustomTheme()
   const { setTheme } = useTheme()
 
+  // Use controlled or internal open state
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setIsOpen = (open: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(open)
+    } else {
+      setInternalOpen(open)
+    }
+  }
+
+  // Auto-open when editThemeId is provided
+  useEffect(() => {
+    if (editThemeId) {
+      setIsOpen(true)
+    }
+  }, [editThemeId])
+
   // Load theme for editing
   useEffect(() => {
-    if (editThemeId && open) {
+    if (editThemeId && isOpen) {
       const theme = getCustomTheme(editThemeId)
       if (theme) {
         setThemeName(theme.name)
@@ -130,11 +179,10 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
         setStep('customize')
         setIsEditing(true)
       }
-    } else if (!open) {
-      // Reset when dialog closes
+    } else if (!isOpen) {
       resetForm()
     }
-  }, [editThemeId, open, getCustomTheme])
+  }, [editThemeId, isOpen, getCustomTheme])
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
     setColors((prev) => ({ ...prev, [key]: value }))
@@ -156,6 +204,16 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
       ring: preset.primary,
     }))
     setThemeName(preset.name)
+    setStep('customize')
+  }
+
+  const applyBuiltInTheme = (themeName: string, displayName: string) => {
+    const themeColors = getThemeColors(themeName)
+    setColors((prev) => ({
+      ...prev,
+      ...themeColors,
+    }))
+    setThemeName(displayName)
     setStep('customize')
   }
 
@@ -189,7 +247,7 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
     })
     
     resetForm()
-    setOpen(false)
+    setIsOpen(false)
     onEditComplete?.()
   }
 
@@ -205,20 +263,25 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
     setStep('customize')
   }
 
+  const builtInThemes = [
+    { id: 'github-dark', name: 'GitHub Dark' },
+    { id: 'discord', name: 'Discord' },
+    { id: 'one-dark', name: 'One Dark' },
+    { id: 'dracula', name: 'Dracula' },
+    { id: 'shades-of-purple', name: 'Shades of Purple' },
+    { id: 'catppuccin-mocha', name: 'Catppuccin Mocha' },
+  ]
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(isOpen) => {
-        setOpen(isOpen)
-        if (!isOpen) resetForm()
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button variant="default" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Theme
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!editThemeId && (
+        <DialogTrigger asChild>
+          <Button variant="default" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Theme
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-[95vw] lg:max-w-5xl max-h-[90vh] p-0 flex flex-col">
         <DialogHeader className="px-4 lg:px-6 pt-4 lg:pt-6 pb-3 lg:pb-4">
           <DialogTitle className="flex items-center gap-2 text-xl lg:text-2xl">
@@ -232,9 +295,10 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
 
         <ScrollArea className="flex-1 px-4 lg:px-6">
           {step === 'preset' && !isEditing ? (
-            <div className="pb-4 lg:pb-6">
-              <div className="mb-4 lg:mb-6">
-                <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Choose a Starting Point</h3>
+            <div className="pb-4 lg:pb-6 space-y-6">
+              {/* Color Presets */}
+              <div>
+                <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Color Presets</h3>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {colorPresets.map((preset) => (
                     <button
@@ -264,6 +328,32 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
                   ))}
                 </div>
               </div>
+
+              {/* Built-in Themes */}
+              <div>
+                <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Built-in Themes</h3>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {builtInThemes.map((theme) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => applyBuiltInTheme(theme.id, theme.name)}
+                      className={`${theme.id} group relative p-3 lg:p-4 rounded-lg border-2 border-border hover:border-primary transition-all overflow-hidden`}
+                    >
+                      <div className="flex gap-2 mb-2 lg:mb-3">
+                        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-md bg-primary" />
+                        <div className="flex flex-col gap-1">
+                          <div className="w-10 h-4 lg:w-12 lg:h-5 rounded-sm bg-background" />
+                          <div className="w-10 h-4 lg:w-12 lg:h-5 rounded-sm bg-background-foreground" />
+                        </div>
+                      </div>
+                      <p className="font-medium text-left text-sm lg:text-base">{theme.name}</p>
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Start from Scratch */}
               <div className="pt-3 lg:pt-4 border-t">
                 <Button
                   variant="outline"
@@ -366,7 +456,7 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
               variant="outline"
               onClick={() => {
                 resetForm()
-                setOpen(false)
+                setIsOpen(false)
               }}
               className="flex-1 sm:flex-none"
             >
