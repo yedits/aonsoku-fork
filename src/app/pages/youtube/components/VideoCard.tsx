@@ -1,19 +1,15 @@
-import { useState } from 'react';
 import { YouTubeVideo } from '@/types/youtube';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { YouTubeVideoPlayer } from './VideoPlayer';
-import { Eye, ThumbsUp, MessageSquare, Clock, Play } from 'lucide-react';
+import { Eye, ThumbsUp, MessageSquare, Clock } from 'lucide-react';
 
 interface VideoCardProps {
   video: YouTubeVideo;
+  viewMode?: 'grid' | 'list';
+  onClick: () => void;
 }
 
-export function YouTubeVideoCard({ video }: VideoCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
+export function YouTubeVideoCard({ video, viewMode = 'grid', onClick }: VideoCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -35,66 +31,91 @@ export function YouTubeVideoCard({ video }: VideoCardProps) {
     return n.toString();
   };
 
-  return (
-    <>
+  if (viewMode === 'list') {
+    return (
       <Card 
-        className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group"
-        onClick={() => setIsOpen(true)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className="cursor-pointer hover:bg-accent transition-colors overflow-hidden"
+        onClick={onClick}
       >
-        <div className="relative overflow-hidden">
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Play className="w-16 h-16 text-white" fill="white" />
-          </div>
-          <div className="absolute bottom-2 right-2 bg-black/90 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {video.duration}
-          </div>
-          {parseInt(video.viewCount) > 100000 && (
-            <Badge className="absolute top-2 left-2 bg-red-600 text-white">
-              Trending
-            </Badge>
-          )}
-        </div>
-        <CardHeader className="pb-3">
-          <CardTitle className="line-clamp-2 text-sm leading-tight">{video.title}</CardTitle>
-          <CardDescription className="text-xs">{formatDate(video.publishedAt)}</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <Eye className="w-3 h-3" />
-              {formatNumber(video.viewCount)}
-            </span>
-            <span className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <ThumbsUp className="w-3 h-3" />
-              {formatNumber(video.likeCount)}
-            </span>
-            <span className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <MessageSquare className="w-3 h-3" />
-              {formatNumber(video.commentCount)}
-            </span>
+        <CardContent className="p-3">
+          <div className="flex gap-3">
+            <div className="relative flex-shrink-0 w-40 h-24">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className="w-full h-full object-cover rounded"
+              />
+              <div className="absolute bottom-1 right-1 bg-black/90 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+                {video.duration}
+              </div>
+              {parseInt(video.viewCount) > 100000 && (
+                <Badge className="absolute top-1 left-1 bg-red-600 text-white text-xs py-0 h-5">
+                  Trending
+                </Badge>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium line-clamp-2 text-sm mb-1">{video.title}</h3>
+              <p className="text-xs text-muted-foreground mb-2">{formatDate(video.publishedAt)}</p>
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  {formatNumber(video.viewCount)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ThumbsUp className="w-3 h-3" />
+                  {formatNumber(video.likeCount)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" />
+                  {formatNumber(video.commentCount)}
+                </span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">{video.title}</DialogTitle>
-            <DialogDescription>
-              Published {formatDate(video.publishedAt)} • {formatNumber(video.viewCount)} views
-            </DialogDescription>
-          </DialogHeader>
-          <YouTubeVideoPlayer video={video} />
-        </DialogContent>
-      </Dialog>
-    </>
+  return (
+    <Card 
+      className="cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 overflow-hidden group"
+      onClick={onClick}
+    >
+      <div className="relative overflow-hidden">
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          className="w-full aspect-video object-cover"
+        />
+        <div className="absolute bottom-1.5 right-1.5 bg-black/90 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+          {video.duration}
+        </div>
+        {parseInt(video.viewCount) > 100000 && (
+          <Badge className="absolute top-1.5 left-1.5 bg-red-600 text-white text-xs">
+            Trending
+          </Badge>
+        )}
+      </div>
+      <CardContent className="p-3">
+        <h3 className="font-medium line-clamp-2 text-sm mb-1 leading-tight">{video.title}</h3>
+        <p className="text-xs text-muted-foreground mb-2">{formatDate(video.publishedAt)}</p>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Eye className="w-3 h-3" />
+            {formatNumber(video.viewCount)}
+          </span>
+          <span className="flex items-center gap-1">
+            <ThumbsUp className="w-3 h-3" />
+            {formatNumber(video.likeCount)}
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageSquare className="w-3 h-3" />
+            {formatNumber(video.commentCount)}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

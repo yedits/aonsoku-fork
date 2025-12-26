@@ -6,14 +6,17 @@ import { YouTubePlaylistCard } from '@/app/pages/youtube/components/PlaylistCard
 import { YouTubeChannelHeader } from '@/app/pages/youtube/components/ChannelHeader';
 import { YouTubeFilters } from '@/app/pages/youtube/components/Filters';
 import { YouTubeStats } from '@/app/pages/youtube/components/Stats';
+import { YouTubeVideoView } from '@/app/pages/youtube/components/VideoView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Input } from '@/app/components/ui/input';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { Search, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle, Grid3x3, List } from 'lucide-react';
 
-type SortOption = 'date' | 'views' | 'likes' | 'title';
-type FilterOption = 'all' | 'recent' | 'popular';
+type SortOption = 'date' | 'views' | 'likes' | 'title' | 'duration' | 'comments';
+type FilterOption = 'all' | 'recent' | 'popular' | 'thisMonth' | 'thisYear';
+type DurationFilter = 'all' | 'short' | 'medium' | 'long';
+type ViewMode = 'grid' | 'list';
 
 export default function YouTubePage() {
   const [channelInfo, setChannelInfo] = useState<YouTubeChannelInfo | null>(null);
@@ -25,6 +28,9 @@ export default function YouTubePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
 
   useEffect(() => {
     loadChannelData();
@@ -35,12 +41,10 @@ export default function YouTubePage() {
     setError(null);
     
     try {
-      // Check cache first
       const cached = localStorage.getItem('youtube_cache');
       const cacheTime = localStorage.getItem('youtube_cache_time');
       const now = Date.now();
       
-      // Use cache if less than 1 hour old
       if (cached && cacheTime && (now - parseInt(cacheTime)) < 3600000) {
         const data = JSON.parse(cached);
         setChannelInfo(data.channelInfo);
@@ -50,14 +54,12 @@ export default function YouTubePage() {
         return;
       }
       
-      // Fetch fresh data
       const [channelData, videosData, playlistsData] = await Promise.all([
         youtubeService.getChannelInfo(),
         youtubeService.getChannelVideos(50),
         youtubeService.getChannelPlaylists(50),
       ]);
       
-      // Cache the data
       localStorage.setItem('youtube_cache', JSON.stringify({
         channelInfo: channelData,
         videos: videosData,
@@ -82,11 +84,16 @@ export default function YouTubePage() {
     loadChannelData();
   };
 
-  // Filter and sort videos
+  const parseDuration = (duration: string): number => {
+    const parts = duration.split(':');
+    if (parts.length === 2) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    if (parts.length === 3) return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+    return 0;
+  };
+
   const filteredAndSortedVideos = useMemo(() => {
     let filtered = videos;
     
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(video => 
         video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -94,9 +101,10 @@ export default function YouTubePage() {
       );
     }
     
-    // Quick filters
     const now = Date.now();
     const weekAgo = now - (7 * 24 * 60 * 60 * 1000);
+    const monthAgo = now - (30 * 24 * 60 * 60 * 1000);
+    const yearAgo = now - (365 * 24 * 60 * 60 * 1000);
     
     if (filterBy === 'recent') {
       filtered = filtered.filter(video => 
@@ -106,9 +114,26 @@ export default function YouTubePage() {
       filtered = filtered.filter(video => 
         parseInt(video.viewCount) > 10000
       );
+    } else if (filterBy === 'thisMonth') {
+      filtered = filtered.filter(video => 
+        new Date(video.publishedAt).getTime() > monthAgo
+      );
+    } else if (filterBy === 'thisYear') {
+      filtered = filtered.filter(video => 
+        new Date(video.publishedAt).getTime() > yearAgo
+      );
     }
     
-    // Sort
+    if (durationFilter !== 'all') {
+      filtered = filtered.filter(video => {
+        const seconds = parseDuration(video.duration);
+        if (durationFilter === 'short') return seconds < 240; // < 4 min
+        if (durationFilter === 'medium') return seconds >= 240 && seconds < 1200; // 4-20 min
+        if (durationFilter === 'long') return seconds >= 1200; // > 20 min
+        return true;
+      });
+    }
+    
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'date':
@@ -117,6 +142,10 @@ export default function YouTubePage() {
           return parseInt(b.viewCount) - parseInt(a.viewCount);
         case 'likes':
           return parseInt(b.likeCount) - parseInt(a.likeCount);
+        case 'comments':
+          return parseInt(b.commentCount) - parseInt(a.commentCount);
+        case 'duration':
+          return parseDuration(b.duration) - parseDuration(a.duration);
         case 'title':
           return a.title.localeCompare(b.title);
         default:
@@ -125,7 +154,7 @@ export default function YouTubePage() {
     });
     
     return sorted;
-  }, [videos, searchQuery, sortBy, filterBy]);
+  }, [videos, searchQuery, sortBy, filterBy, durationFilter]);
 
   if (loading) {
     return (
@@ -157,11 +186,21 @@ export default function YouTubePage() {
     );
   }
 
+  if (selectedVideo) {
+    return (
+      <div className="h-screen overflow-hidden">
+        <YouTubeVideoView
+          video={selectedVideo}
+          onClose={() => setSelectedVideo(null)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="w-full px-6 py-6 space-y-6">
       {channelInfo && <YouTubeChannelHeader channel={channelInfo} />}
       
-      {/* Stats Dashboard */}
       <YouTubeStats 
         videos={videos} 
         playlists={playlists}
@@ -169,18 +208,36 @@ export default function YouTubePage() {
       />
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="videos">
-            Videos ({filteredAndSortedVideos.length})
-          </TabsTrigger>
-          <TabsTrigger value="playlists">
-            Playlists ({playlists.length})
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="videos">
+              Videos ({filteredAndSortedVideos.length})
+            </TabsTrigger>
+            <TabsTrigger value="playlists">
+              Playlists ({playlists.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
         
-        <TabsContent value="videos" className="space-y-6">
-          {/* Search Bar */}
-          <div className="relative max-w-2xl">
+        <TabsContent value="videos" className="space-y-4 mt-0">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search videos by title or description..."
@@ -190,18 +247,26 @@ export default function YouTubePage() {
             />
           </div>
           
-          {/* Filters */}
           <YouTubeFilters
             sortBy={sortBy}
             setSortBy={setSortBy}
             filterBy={filterBy}
             setFilterBy={setFilterBy}
+            durationFilter={durationFilter}
+            setDurationFilter={setDurationFilter}
           />
           
-          {/* Video Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className={viewMode === 'grid' 
+            ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4" 
+            : "flex flex-col gap-3"
+          }>
             {filteredAndSortedVideos.map((video) => (
-              <YouTubeVideoCard key={video.id} video={video} />
+              <YouTubeVideoCard 
+                key={video.id} 
+                video={video} 
+                viewMode={viewMode}
+                onClick={() => setSelectedVideo(video)}
+              />
             ))}
           </div>
           
@@ -216,8 +281,8 @@ export default function YouTubePage() {
           )}
         </TabsContent>
         
-        <TabsContent value="playlists" className="mt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+        <TabsContent value="playlists" className="mt-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {playlists.map((playlist) => (
               <YouTubePlaylistCard key={playlist.id} playlist={playlist} />
             ))}
