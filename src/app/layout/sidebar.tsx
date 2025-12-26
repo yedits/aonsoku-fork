@@ -8,6 +8,7 @@ import {
   PodcastIcon,
   RadioIcon,
   UploadIcon,
+  YoutubeIcon,
 } from 'lucide-react';
 import { ElementType, memo } from 'react';
 import { ROUTES } from '@/routes/routesList';
@@ -21,6 +22,7 @@ const Library = memo(LibraryIcon);
 const Podcast = memo(PodcastIcon);
 const Palette = memo(PaletteIcon);
 const Upload = memo(UploadIcon);
+const Youtube = memo(YoutubeIcon);
 
 export interface ISidebarItem {
   id: string;
@@ -37,6 +39,7 @@ export enum SidebarItems {
   Playlists = 'playlists',
   Podcasts = 'podcasts',
   Radios = 'radios',
+  YouTube = 'youtube',
   Art = 'art',
   Upload = 'upload',
   PodcastAll = 'podcast-all',
@@ -88,6 +91,12 @@ export const libraryItems = [
     title: 'sidebar.radios',
     route: ROUTES.LIBRARY.RADIOS,
     icon: Radio,
+  },
+  {
+    id: SidebarItems.YouTube,
+    title: 'YouTube',
+    route: ROUTES.LIBRARY.YOUTUBE,
+    icon: Youtube,
   },
   {
     id: SidebarItems.Art,
