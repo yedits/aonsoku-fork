@@ -8,12 +8,10 @@ import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Separator } from '@/app/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { Badge } from '@/app/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { 
   X, Eye, ThumbsUp, MessageSquare, ChevronDown, ChevronRight, 
-  Share2, Download, ListPlus, ExternalLink, Clock, ThumbsDown,
-  Bookmark, Link as LinkIcon, Settings, Play, User, Calendar,
-  TrendingUp, Hash
+  Share2, ExternalLink, Clock, ThumbsDown, Calendar, Hash,
+  PanelRightClose, PanelRightOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,8 +26,7 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState('comments');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     loadComments();
@@ -77,10 +74,6 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
     navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`);
   };
 
-  const handleDownload = async () => {
-    window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank');
-  };
-
   const extractTags = (description: string) => {
     const hashtagRegex = /#\w+/g;
     const matches = description.match(hashtagRegex) || [];
@@ -94,7 +87,7 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Top Navigation Bar */}
-        <div className="h-14 border-b px-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+        <div className="h-14 border-b px-6 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
           <Button
             variant="ghost"
             size="sm"
@@ -102,24 +95,44 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
             className="gap-2"
           >
             <X className="w-4 h-4" />
-            Back
+            Back to Videos
           </Button>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleShare} className="gap-2">
-              <Share2 className="w-4 h-4" />
-              Share
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleDownload} className="gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank')}
+              className="gap-2"
+            >
               <ExternalLink className="w-4 h-4" />
-              YouTube
+              Open in YouTube
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="gap-2"
+            >
+              {sidebarOpen ? (
+                <>
+                  <PanelRightClose className="w-4 h-4" />
+                  Hide Comments
+                </>
+              ) : (
+                <>
+                  <PanelRightOpen className="w-4 h-4" />
+                  Show Comments
+                </>
+              )}
             </Button>
           </div>
         </div>
 
         {/* Scrollable Content */}
         <ScrollArea className="flex-1">
-          <div className="w-full px-6 py-4 space-y-4">
+          <div className="w-full px-6 py-6 space-y-6">
             {/* Video Player */}
             <div className="w-full bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
               <iframe
@@ -132,53 +145,48 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
             </div>
 
             {/* Video Info Section */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Title */}
               <h1 className="text-2xl font-bold leading-tight">{video.title}</h1>
               
               {/* Stats and Actions Bar */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center justify-between gap-4">
                 {/* Left: Stats */}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Eye className="w-4 h-4" />
-                    {formatNumber(video.viewCount)}
+                    {formatNumber(video.viewCount)} views
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(video.publishedAt)}
-                  </span>
+                  <span>{formatDate(video.publishedAt)}</span>
                 </div>
                 
                 {/* Right: Action Buttons */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center rounded-full bg-muted">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn('rounded-l-full', isLiked && 'text-primary')}
-                      onClick={() => {
-                        setIsLiked(!isLiked);
-                        if (isDisliked) setIsDisliked(false);
-                      }}
-                    >
-                      <ThumbsUp className="w-4 h-4 mr-1.5" />
-                      {formatNumber(video.likeCount)}
-                    </Button>
-                    <Separator orientation="vertical" className="h-6" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn('rounded-r-full', isDisliked && 'text-primary')}
-                      onClick={() => {
-                        setIsDisliked(!isDisliked);
-                        if (isLiked) setIsLiked(false);
-                      }}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className={cn(isLiked && 'bg-primary text-primary-foreground')}
+                    onClick={() => {
+                      setIsLiked(!isLiked);
+                      if (isDisliked) setIsDisliked(false);
+                    }}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    {formatNumber(video.likeCount)}
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className={cn(isDisliked && 'bg-primary text-primary-foreground')}
+                    onClick={() => {
+                      setIsDisliked(!isDisliked);
+                      if (isLiked) setIsLiked(false);
+                    }}
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                  </Button>
                   
                   <Button
                     variant="secondary"
@@ -188,26 +196,6 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
                   >
                     <Share2 className="w-4 h-4" />
                     Share
-                  </Button>
-                  
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleDownload}
-                    className="gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </Button>
-                  
-                  <Button
-                    variant={isSaved ? 'default' : 'secondary'}
-                    size="sm"
-                    onClick={() => setIsSaved(!isSaved)}
-                    className="gap-2"
-                  >
-                    <Bookmark className={cn('w-4 h-4', isSaved && 'fill-current')} />
-                    {isSaved ? 'Saved' : 'Save'}
                   </Button>
                 </div>
               </div>
@@ -225,33 +213,51 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
               )}
             </div>
 
-            {/* Description Card */}
+            {/* Video Details Card */}
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-2 text-lg">Description</h3>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                        {video.description || 'No description available.'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <div className="text-sm">
+                <div className="space-y-4">
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
                       <div className="text-muted-foreground mb-1">Duration</div>
-                      <div className="font-medium flex items-center gap-1.5 justify-end">
+                      <div className="font-medium flex items-center gap-1.5">
                         <Clock className="w-4 h-4" />
                         {video.duration}
                       </div>
                     </div>
-                    <Separator />
-                    <div className="text-sm">
+                    <div>
+                      <div className="text-muted-foreground mb-1">Views</div>
+                      <div className="font-medium flex items-center gap-1.5">
+                        <Eye className="w-4 h-4" />
+                        {formatNumber(video.viewCount)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Likes</div>
+                      <div className="font-medium flex items-center gap-1.5">
+                        <ThumbsUp className="w-4 h-4" />
+                        {formatNumber(video.likeCount)}
+                      </div>
+                    </div>
+                    <div>
                       <div className="text-muted-foreground mb-1">Comments</div>
-                      <div className="font-medium flex items-center gap-1.5 justify-end">
+                      <div className="font-medium flex items-center gap-1.5">
                         <MessageSquare className="w-4 h-4" />
                         {formatNumber(video.commentCount)}
                       </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Description */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Description</h3>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                        {video.description || 'No description available.'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -260,7 +266,7 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
 
             {/* Related Videos */}
             {relatedVideos.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Related Videos</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {relatedVideos.map((related) => (
@@ -271,7 +277,7 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
                           alt={related.title}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-1.5 right-1.5 bg-black/90 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+                        <div className="absolute bottom-2 right-2 bg-black/90 text-white px-2 py-1 rounded text-xs font-semibold">
                           {related.duration}
                         </div>
                       </div>
@@ -302,109 +308,41 @@ export function YouTubeVideoView({ video, onClose }: VideoViewProps) {
         </ScrollArea>
       </div>
 
-      {/* Right Sidebar - Comments & Info */}
-      <div className="w-[400px] border-l flex flex-col bg-muted/20">
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <div className="border-b">
-            <TabsList className="w-full grid grid-cols-2 rounded-none h-12 bg-transparent">
-              <TabsTrigger value="comments" className="rounded-none data-[state=active]:bg-background">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Comments ({formatNumber(video.commentCount)})
-              </TabsTrigger>
-              <TabsTrigger value="info" className="rounded-none data-[state=active]:bg-background">
-                <Settings className="w-4 h-4 mr-2" />
-                Info
-              </TabsTrigger>
-            </TabsList>
+      {/* Collapsible Comments Sidebar */}
+      {sidebarOpen && (
+        <div className="w-[400px] border-l flex flex-col bg-muted/20">
+          {/* Comments Header */}
+          <div className="h-14 px-4 flex items-center justify-between border-b bg-background/95">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              <h2 className="font-semibold">Comments</h2>
+              <Badge variant="secondary">{formatNumber(video.commentCount)}</Badge>
+            </div>
           </div>
 
-          {/* Comments Tab */}
-          <TabsContent value="comments" className="flex-1 m-0">
-            <ScrollArea className="h-full">
-              <div className="p-4">
-                {loadingComments ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>No comments yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <CommentThread key={comment.id} comment={comment} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          {/* Info Tab */}
-          <TabsContent value="info" className="flex-1 m-0">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
-                <div className="space-y-3">
-                  <h3 className="font-semibold">Video Details</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Views</span>
-                      <span className="font-medium">{formatNumber(video.viewCount)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Likes</span>
-                      <span className="font-medium">{formatNumber(video.likeCount)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Comments</span>
-                      <span className="font-medium">{formatNumber(video.commentCount)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span className="font-medium">{video.duration}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Published</span>
-                      <span className="font-medium">{formatDate(video.publishedAt)}</span>
-                    </div>
-                  </div>
+          {/* Comments List */}
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              {loadingComments ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <h3 className="font-semibold">Quick Actions</h3>
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start" onClick={() => {
-                      navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`);
-                    }}>
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                      Copy Video URL
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={() => {
-                      navigator.clipboard.writeText(video.thumbnail);
-                    }}>
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                      Copy Thumbnail URL
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <ListPlus className="w-4 h-4 mr-2" />
-                      Add to Playlist
-                    </Button>
-                  </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>No comments available</p>
                 </div>
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </div>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <CommentThread key={comment.id} comment={comment} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 }
@@ -431,11 +369,11 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
     <div className="space-y-3">
       {/* Main Comment */}
       <div className="flex gap-3 group">
-        <Avatar className="w-8 h-8 flex-shrink-0">
+        <Avatar className="w-9 h-9 flex-shrink-0">
           <AvatarImage src={comment.authorProfileImageUrl} />
           <AvatarFallback className="text-xs">{comment.author[0]}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex-1 min-w-0 space-y-1.5">
           <div className="flex items-baseline gap-2">
             <span className="font-medium text-sm">{comment.author}</span>
             <span className="text-xs text-muted-foreground">{formatDate(comment.publishedAt)}</span>
@@ -445,7 +383,7 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
             dangerouslySetInnerHTML={{ __html: comment.text }}
           />
           {comment.likeCount > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
               <ThumbsUp className="w-3 h-3" />
               {comment.likeCount}
             </div>
@@ -455,9 +393,9 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
 
       {/* Replies */}
       {hasReplies && (
-        <div className="ml-11">
+        <div className="ml-12">
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline mb-2 py-1">
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline mb-3 py-1">
               {isOpen ? (
                 <ChevronDown className="w-4 h-4" />
               ) : (
@@ -469,12 +407,12 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-1">
               {comment.replies!.map((reply) => (
-                <div key={reply.id} className="flex gap-2.5">
+                <div key={reply.id} className="flex gap-3">
                   <Avatar className="w-7 h-7 flex-shrink-0">
                     <AvatarImage src={reply.authorProfileImageUrl} />
                     <AvatarFallback className="text-xs">{reply.author[0]}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex items-baseline gap-2">
                       <span className="font-medium text-sm">{reply.author}</span>
                       <span className="text-xs text-muted-foreground">{formatDate(reply.publishedAt)}</span>
@@ -484,7 +422,7 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
                       dangerouslySetInnerHTML={{ __html: reply.text }}
                     />
                     {reply.likeCount > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground pt-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                         <ThumbsUp className="w-3 h-3" />
                         {reply.likeCount}
                       </div>
@@ -497,7 +435,7 @@ function CommentThread({ comment }: { comment: YouTubeComment }) {
         </div>
       )}
 
-      <Separator className="my-3" />
+      <Separator />
     </div>
   );
 }
