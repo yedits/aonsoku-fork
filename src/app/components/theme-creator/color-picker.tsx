@@ -3,7 +3,6 @@ import { Label } from '@/app/components/ui/label'
 import { Input } from '@/app/components/ui/input'
 import { Slider } from '@/app/components/ui/slider'
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
 import { hslToHex, hexToHsl } from '@/utils/theme-utils'
 import { Button } from '@/app/components/ui/button'
 import { ColorWheel } from './color-wheel'
@@ -24,6 +23,7 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
       l: parseInt(parts[2]) || 0,
     }
   })
+  const [pasteValue, setPasteValue] = useState('')
 
   useEffect(() => {
     const parts = value.split(' ')
@@ -58,6 +58,19 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
     setHexValue(hslToHex(hslString))
   }
 
+  const handlePaste = () => {
+    const trimmed = pasteValue.trim()
+    // Try hex format first
+    if (trimmed.startsWith('#')) {
+      handleHexChange(trimmed)
+      setPasteValue('')
+    } else {
+      // Try HSL format
+      onChange(trimmed)
+      setPasteValue('')
+    }
+  }
+
   return (
     <div className="space-y-3">
       {label && <Label className="text-sm font-medium">{label}</Label>}
@@ -68,75 +81,70 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-20 h-20 p-1 rounded-lg border-2 hover:border-primary transition-colors"
+              className="w-20 h-20 p-1 rounded-lg border-2 hover:border-primary transition-colors flex-shrink-0"
               style={{ backgroundColor: hexValue }}
             >
               <div className="w-full h-full rounded-md" style={{ backgroundColor: hexValue }} />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <Tabs defaultValue="wheel" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="wheel">Color Wheel</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              </TabsList>
+          <PopoverContent className="w-80" align="start">
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <ColorWheel
+                  hue={hslValues.h}
+                  saturation={hslValues.s}
+                  lightness={hslValues.l}
+                  onChange={handleWheelChange}
+                  size={240}
+                />
+              </div>
               
-              <TabsContent value="wheel" className="space-y-4">
-                <div className="flex justify-center">
-                  <ColorWheel
-                    hue={hslValues.h}
-                    saturation={hslValues.s}
-                    lightness={hslValues.l}
-                    onChange={handleWheelChange}
-                    size={240}
-                  />
+              {/* Lightness slider */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs">Lightness</Label>
+                  <span className="text-xs font-mono text-muted-foreground">{hslValues.l}%</span>
                 </div>
-                
-                {/* Lightness slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-xs">Lightness</Label>
-                    <span className="text-xs font-mono text-muted-foreground">{hslValues.l}%</span>
-                  </div>
-                  <Slider
-                    value={[hslValues.l]}
-                    onValueChange={([v]) => handleHslChange('l', v)}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="advanced" className="space-y-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-2 block">
-                    Pick a Color
-                  </Label>
-                  <input
-                    type="color"
-                    value={hexValue}
-                    onChange={(e) => handleHexChange(e.target.value)}
-                    className="w-full h-32 rounded cursor-pointer border-0"
-                    style={{ padding: 0 }}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Hex Value</Label>
+                <Slider
+                  value={[hslValues.l]}
+                  onValueChange={([v]) => handleHslChange('l', v)}
+                  max={100}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Paste input */}
+              <div className="space-y-2">
+                <Label className="text-xs">Paste Hex or HSL</Label>
+                <div className="flex gap-2">
                   <Input
                     type="text"
-                    value={hexValue}
-                    onChange={(e) => handleHexChange(e.target.value)}
-                    className="mt-1 font-mono"
+                    value={pasteValue}
+                    onChange={(e) => setPasteValue(e.target.value)}
+                    placeholder="#FF0000 or 220 13% 16%"
+                    className="text-xs font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handlePaste()
+                      }
+                    }}
                   />
+                  <Button
+                    size="sm"
+                    onClick={handlePaste}
+                    disabled={!pasteValue.trim()}
+                  >
+                    Apply
+                  </Button>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
 
         {/* HSL Sliders */}
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 min-w-0 space-y-3">
           {/* Hue */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
