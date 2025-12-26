@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Palette, Sparkles, Eye, Save, Plus } from 'lucide-react'
 import { Button } from '@/app/components/ui/button'
 import {
@@ -98,14 +98,33 @@ const uiColors: Array<{ key: keyof ThemeColors; label: string; description: stri
   { key: 'input', label: 'Input', description: 'Input backgrounds' },
 ]
 
-export function ThemeCreatorDialog() {
+interface ThemeCreatorDialogProps {
+  editThemeId?: string | null
+  onEditComplete?: () => void
+}
+
+export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreatorDialogProps = {}) {
   const [open, setOpen] = useState(false)
   const [themeName, setThemeName] = useState('')
   const [colors, setColors] = useState<ThemeColors>(defaultColors)
   const [step, setStep] = useState<'preset' | 'customize'>('preset')
+  const [isEditing, setIsEditing] = useState(false)
 
-  const { addCustomTheme } = useCustomTheme()
+  const { addCustomTheme, updateCustomTheme, getCustomTheme } = useCustomTheme()
   const { setTheme } = useTheme()
+
+  // Load theme for editing
+  useEffect(() => {
+    if (editThemeId && open) {
+      const theme = getCustomTheme(editThemeId)
+      if (theme) {
+        setThemeName(theme.name)
+        setColors(theme.colors)
+        setStep('customize')
+        setIsEditing(true)
+      }
+    }
+  }, [editThemeId, open, getCustomTheme])
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
     setColors((prev) => ({ ...prev, [key]: value }))
@@ -136,14 +155,20 @@ export function ThemeCreatorDialog() {
     }
 
     const theme: CustomTheme = {
-      id: `custom-${Date.now()}`,
+      id: isEditing && editThemeId ? editThemeId : `custom-${Date.now()}`,
       name: themeName,
       colors,
-      createdAt: Date.now(),
+      createdAt: isEditing ? getCustomTheme(editThemeId!)?.createdAt || Date.now() : Date.now(),
       updatedAt: Date.now(),
     }
 
-    addCustomTheme(theme)
+    if (isEditing && editThemeId) {
+      updateCustomTheme(editThemeId, theme)
+      toast.success(`Theme "${themeName}" updated!`)
+    } else {
+      addCustomTheme(theme)
+      toast.success(`Theme "${themeName}" created!`)
+    }
     
     // Apply the theme immediately
     const root = document.documentElement
@@ -152,15 +177,16 @@ export function ThemeCreatorDialog() {
       root.style.setProperty(`--${cssVar}`, value)
     })
     
-    toast.success(`Theme "${themeName}" created and applied!`)
     resetForm()
     setOpen(false)
+    onEditComplete?.()
   }
 
   const resetForm = () => {
     setThemeName('')
     setColors(defaultColors)
     setStep('preset')
+    setIsEditing(false)
   }
 
   const startFromScratch = () => {
@@ -187,15 +213,15 @@ export function ThemeCreatorDialog() {
           <DialogHeader className="px-6 pt-6 pb-4">
             <DialogTitle className="flex items-center gap-2 text-2xl">
               <Sparkles className="h-6 w-6 text-primary" />
-              Create Your Perfect Theme
+              {isEditing ? 'Edit Your Theme' : 'Create Your Perfect Theme'}
             </DialogTitle>
             <DialogDescription>
-              Start with a preset or customize every detail
+              {isEditing ? 'Update your theme colors' : 'Start with a preset or customize every detail'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden">
-            {step === 'preset' ? (
+            {step === 'preset' && !isEditing ? (
               <div className="px-6 pb-6">
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-4">Choose a Starting Point</h3>
@@ -318,7 +344,7 @@ export function ThemeCreatorDialog() {
 
           {/* Footer */}
           <div className="flex justify-between items-center px-6 py-4 border-t bg-muted/30">
-            {step === 'customize' && (
+            {step === 'customize' && !isEditing && (
               <Button
                 variant="ghost"
                 onClick={() => setStep('preset')}
@@ -326,7 +352,7 @@ export function ThemeCreatorDialog() {
                 ← Back to Presets
               </Button>
             )}
-            {step === 'preset' && <div />}
+            {(step === 'preset' || isEditing) && <div />}
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -340,7 +366,7 @@ export function ThemeCreatorDialog() {
               {step === 'customize' && (
                 <Button onClick={handleSave} className="gap-2">
                   <Save className="h-4 w-4" />
-                  Save & Apply Theme
+                  {isEditing ? 'Update Theme' : 'Save & Apply Theme'}
                 </Button>
               )}
             </div>
