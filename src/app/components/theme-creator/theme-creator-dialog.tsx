@@ -47,37 +47,37 @@ const defaultColors: ThemeColors = {
 // Color presets for quick start
 const colorPresets = [
   {
-    name: 'Ocean Blue',
+    name: 'Blue',
     primary: '200 98% 39%',
     background: '220 13% 9%',
     accent: '210 40% 25%',
   },
   {
-    name: 'Forest Green',
+    name: 'Green',
     primary: '142 71% 45%',
     background: '140 10% 10%',
     accent: '145 30% 20%',
   },
   {
-    name: 'Sunset Orange',
+    name: 'Orange',
     primary: '25 95% 53%',
     background: '20 14% 10%',
     accent: '30 40% 22%',
   },
   {
-    name: 'Purple Haze',
+    name: 'Purple',
     primary: '270 70% 50%',
     background: '265 15% 10%',
     accent: '270 35% 22%',
   },
   {
-    name: 'Rose Pink',
+    name: 'Pink',
     primary: '330 81% 60%',
     background: '325 12% 10%',
     accent: '330 35% 22%',
   },
   {
-    name: 'Cyber Cyan',
+    name: 'Cyan',
     primary: '180 100% 50%',
     background: '200 15% 8%',
     accent: '185 40% 20%',
@@ -208,168 +208,165 @@ export function ThemeCreatorDialog({ editThemeId, onEditComplete }: ThemeCreator
           Create Theme
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
-        <div className="flex flex-col h-full">
-          <DialogHeader className="px-6 pt-6 pb-4">
-            <DialogTitle className="flex items-center gap-2 text-2xl">
-              <Sparkles className="h-6 w-6 text-primary" />
-              {isEditing ? 'Edit Your Theme' : 'Create Your Perfect Theme'}
-            </DialogTitle>
-            <DialogDescription>
-              {isEditing ? 'Update your theme colors' : 'Start with a preset or customize every detail'}
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent className="max-w-[95vw] lg:max-w-5xl max-h-[90vh] p-0 flex flex-col">
+        <DialogHeader className="px-4 lg:px-6 pt-4 lg:pt-6 pb-3 lg:pb-4">
+          <DialogTitle className="flex items-center gap-2 text-xl lg:text-2xl">
+            <Sparkles className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+            {isEditing ? 'Edit Your Theme' : 'Create Your Perfect Theme'}
+          </DialogTitle>
+          <DialogDescription className="text-sm">
+            {isEditing ? 'Update your theme colors' : 'Start with a preset or customize every detail'}
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="flex-1 overflow-hidden">
-            {step === 'preset' && !isEditing ? (
-              <div className="px-6 pb-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Choose a Starting Point</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {colorPresets.map((preset) => (
-                      <button
-                        key={preset.name}
-                        onClick={() => applyPreset(preset)}
-                        className="group relative p-4 rounded-lg border-2 border-border hover:border-primary transition-all overflow-hidden"
-                      >
-                        <div className="flex gap-2 mb-3">
+        <ScrollArea className="flex-1 px-4 lg:px-6">
+          {step === 'preset' && !isEditing ? (
+            <div className="pb-4 lg:pb-6">
+              <div className="mb-4 lg:mb-6">
+                <h3 className="text-base lg:text-lg font-semibold mb-3 lg:mb-4">Choose a Starting Point</h3>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {colorPresets.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => applyPreset(preset)}
+                      className="group relative p-3 lg:p-4 rounded-lg border-2 border-border hover:border-primary transition-all overflow-hidden"
+                    >
+                      <div className="flex gap-2 mb-2 lg:mb-3">
+                        <div
+                          className="w-10 h-10 lg:w-12 lg:h-12 rounded-md"
+                          style={{ backgroundColor: hslToHex(preset.primary) }}
+                        />
+                        <div className="flex flex-col gap-1">
                           <div
-                            className="w-12 h-12 rounded-md"
-                            style={{ backgroundColor: hslToHex(preset.primary) }}
+                            className="w-10 h-4 lg:w-12 lg:h-5 rounded-sm"
+                            style={{ backgroundColor: hslToHex(preset.background) }}
                           />
-                          <div className="flex flex-col gap-1">
-                            <div
-                              className="w-12 h-5 rounded-sm"
-                              style={{ backgroundColor: hslToHex(preset.background) }}
-                            />
-                            <div
-                              className="w-12 h-5 rounded-sm"
-                              style={{ backgroundColor: hslToHex(preset.accent) }}
-                            />
+                          <div
+                            className="w-10 h-4 lg:w-12 lg:h-5 rounded-sm"
+                            style={{ backgroundColor: hslToHex(preset.accent) }}
+                          />
+                        </div>
+                      </div>
+                      <p className="font-medium text-left text-sm lg:text-base">{preset.name}</p>
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-3 lg:pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={startFromScratch}
+                  className="w-full"
+                >
+                  <Palette className="h-4 w-4 mr-2" />
+                  Start from Scratch
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 pb-4 lg:pb-6">
+              {/* Color Controls */}
+              <div className="flex-1 min-w-0">
+                <div className="mb-4">
+                  <Label htmlFor="theme-name" className="text-sm lg:text-base font-semibold">
+                    Theme Name
+                  </Label>
+                  <Input
+                    id="theme-name"
+                    value={themeName}
+                    onChange={(e) => setThemeName(e.target.value)}
+                    placeholder="My Awesome Theme"
+                    className="mt-2"
+                  />
+                </div>
+
+                <Tabs defaultValue="base" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="base">Base Colors</TabsTrigger>
+                    <TabsTrigger value="ui">UI Elements</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="base" className="mt-4">
+                    <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6">
+                      {baseColors.map(({ key, label, description }) => (
+                        <div key={key} className="space-y-2">
+                          <div>
+                            <Label className="font-semibold text-sm">{label}</Label>
+                            <p className="text-xs text-muted-foreground">{description}</p>
                           </div>
+                          <ColorPicker
+                            label=""
+                            value={colors[key]}
+                            onChange={(value) => handleColorChange(key, value)}
+                          />
                         </div>
-                        <p className="font-medium text-left">{preset.name}</p>
-                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={startFromScratch}
-                    className="w-full"
-                  >
-                    <Palette className="h-4 w-4 mr-2" />
-                    Start from Scratch
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-6 px-6 pb-6 h-full">
-                {/* Color Controls */}
-                <div className="flex-1">
-                  <div className="mb-4">
-                    <Label htmlFor="theme-name" className="text-base font-semibold">
-                      Theme Name
-                    </Label>
-                    <Input
-                      id="theme-name"
-                      value={themeName}
-                      onChange={(e) => setThemeName(e.target.value)}
-                      placeholder="My Awesome Theme"
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <Tabs defaultValue="base" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="base">Base Colors</TabsTrigger>
-                      <TabsTrigger value="ui">UI Elements</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="base" className="mt-4">
-                      <ScrollArea className="h-[400px] pr-4">
-                        <div className="space-y-6">
-                          {baseColors.map(({ key, label, description }) => (
-                            <div key={key} className="space-y-2">
-                              <div>
-                                <Label className="font-semibold">{label}</Label>
-                                <p className="text-xs text-muted-foreground">{description}</p>
-                              </div>
-                              <ColorPicker
-                                label=""
-                                value={colors[key]}
-                                onChange={(value) => handleColorChange(key, value)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-                    <TabsContent value="ui" className="mt-4">
-                      <ScrollArea className="h-[400px] pr-4">
-                        <div className="space-y-6">
-                          {uiColors.map(({ key, label, description }) => (
-                            <div key={key} className="space-y-2">
-                              <div>
-                                <Label className="font-semibold">{label}</Label>
-                                <p className="text-xs text-muted-foreground">{description}</p>
-                              </div>
-                              <ColorPicker
-                                label=""
-                                value={colors[key]}
-                                onChange={(value) => handleColorChange(key, value)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-
-                {/* Live Preview */}
-                <div className="w-96">
-                  <div className="sticky top-0">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                      <Label className="text-sm font-semibold">Live Preview</Label>
+                      ))}
                     </div>
-                    <ThemePreview colors={colors} themeName={themeName || 'Preview'} />
+                  </TabsContent>
+                  <TabsContent value="ui" className="mt-4">
+                    <div className="max-h-[400px] overflow-y-auto pr-2 space-y-6">
+                      {uiColors.map(({ key, label, description }) => (
+                        <div key={key} className="space-y-2">
+                          <div>
+                            <Label className="font-semibold text-sm">{label}</Label>
+                            <p className="text-xs text-muted-foreground">{description}</p>
+                          </div>
+                          <ColorPicker
+                            label=""
+                            value={colors[key]}
+                            onChange={(value) => handleColorChange(key, value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Live Preview */}
+              <div className="w-full lg:w-96 flex-shrink-0">
+                <div className="lg:sticky lg:top-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-semibold">Live Preview</Label>
                   </div>
+                  <ThemePreview colors={colors} themeName={themeName || 'Preview'} />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </ScrollArea>
 
-          {/* Footer */}
-          <div className="flex justify-between items-center px-6 py-4 border-t bg-muted/30">
+        {/* Footer */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 px-4 lg:px-6 py-3 lg:py-4 border-t bg-muted/30">
+          <div className="w-full sm:w-auto">
             {step === 'customize' && !isEditing && (
               <Button
                 variant="ghost"
                 onClick={() => setStep('preset')}
+                className="w-full sm:w-auto"
               >
                 ← Back to Presets
               </Button>
             )}
-            {(step === 'preset' || isEditing) && <div />}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  resetForm()
-                  setOpen(false)
-                }}
-              >
-                Cancel
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetForm()
+                setOpen(false)
+              }}
+              className="flex-1 sm:flex-none"
+            >
+              Cancel
+            </Button>
+            {step === 'customize' && (
+              <Button onClick={handleSave} className="gap-2 flex-1 sm:flex-none">
+                <Save className="h-4 w-4" />
+                {isEditing ? 'Update' : 'Save & Apply'}
               </Button>
-              {step === 'customize' && (
-                <Button onClick={handleSave} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  {isEditing ? 'Update Theme' : 'Save & Apply Theme'}
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </DialogContent>
