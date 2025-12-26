@@ -1,6 +1,6 @@
-# Aonsoku
+# yedits.net
 
-A modern desktop and web client for Navidrome/Subsonic music servers with advanced features including music upload, metadata editing, YouTube integration, and comprehensive media management.
+A modern desktop and web client for Navidrome music servers with advanced features including music upload, metadata editing, YouTube integration, and comprehensive media management.
 
 ## Quick Start - One Command Development
 
@@ -47,7 +47,7 @@ Stop everything with `Ctrl+C`.
 ### File Structure - Only ONE .env
 
 ```
-aonsoku-fork/
+yedits-net/
   .env                    <-- ONLY configure this file
   .env.example            <-- Template (safe to commit)
   tag-writer-service/
@@ -79,8 +79,8 @@ aonsoku-fork/
 ## Features
 
 ### Core Features
-- Modern web and desktop client for Subsonic-compatible servers
-- Support for Navidrome, Subsonic, and LMS servers
+- Modern web and desktop client for Navidrome servers
+- Support for Navidrome and LMS servers
 - Responsive design for all screen sizes
 - Dark/light theme support
 - Internet radio streaming
@@ -122,7 +122,7 @@ aonsoku-fork/
 
 ### Prerequisites
 - Node.js 16+ and npm
-- A running Navidrome or Subsonic-compatible server
+- A running Navidrome server
 
 ### Setup
 
@@ -425,9 +425,9 @@ npm run build:linux      # Build for Linux
 version: '3.8'
 
 services:
-  aonsoku:
-    container_name: aonsoku
-    image: ghcr.io/victoralvesf/aonsoku:latest
+  yedits-net:
+    container_name: yedits-net
+    image: ghcr.io/onyxdagoat1/yedits-net:latest
     restart: unless-stopped
     ports:
       - 8080:8080
@@ -514,8 +514,8 @@ services:
     depends_on:
       - navidrome
   
-  aonsoku:
-    image: ghcr.io/victoralvesf/aonsoku:latest
+  yedits-net:
+    image: ghcr.io/onyxdagoat1/yedits-net:latest
     ports:
       - "8080:8080"
     environment:
@@ -532,11 +532,11 @@ services:
 
 ```ini
 [Unit]
-Description=Aonsoku Container
+Description=yedits.net Container
 
 [Container]
-ContainerName=aonsoku
-Image=ghcr.io/victoralvesf/aonsoku:latest
+ContainerName=yedits-net
+Image=ghcr.io/onyxdagoat1/yedits-net:latest
 PublishPort=8080:8080
 AutoUpdate=registry
 
@@ -555,18 +555,18 @@ Since this application is not signed and notarized by Apple, macOS Gatekeeper ma
 
 **Solution:**
 
-1. Move Aonsoku to `/Applications` folder
+1. Move yedits.net to `/Applications` folder
 
 2. Open Terminal and run:
 ```bash
 # Remove quarantine attribute
-sudo xattr -cr /Applications/Aonsoku.app
+sudo xattr -cr /Applications/yedits.net.app
 
 # Re-sign the application locally
-sudo codesign --force --deep --sign - /Applications/Aonsoku.app
+sudo codesign --force --deep --sign - /Applications/yedits.net.app
 ```
 
-3. Launch Aonsoku normally
+3. Launch yedits.net normally
 
 ## Troubleshooting
 
@@ -684,7 +684,6 @@ MIT License - see [LICENSE.txt](LICENSE.txt)
 
 ## Credits
 
-- Original Aonsoku by [Victor Alves](https://github.com/victoralvesf/aonsoku)
 - Integrates with [Navidrome](https://www.navidrome.org/)
 - Uses [music-metadata](https://github.com/Borewit/music-metadata) for tag reading
 - Uses [node-id3](https://github.com/Zazama/node-id3) for tag writing
