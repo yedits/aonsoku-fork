@@ -11,6 +11,7 @@ const LIBRARY = {
   EPISODES: '/library/episodes',
   RADIOS: '/library/radios',
   ART: '/library/art',
+  YOUTUBE: '/library/youtube',
 };
 
 const ARTIST = {

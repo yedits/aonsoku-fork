@@ -43,6 +43,7 @@ const LatestEpisodes = lazy(
 );
 const ArtGallery = lazy(() => import('@/app/pages/art/gallery'));
 const UploadPage = lazy(() => import('@/app/pages/upload'));
+const YouTubePage = lazy(() => import('@/app/pages/youtube'));
 
 export const router = createHashRouter([
   {
@@ -118,6 +119,16 @@ export const router = createHashRouter([
         element: (
           <Suspense fallback={<AlbumsFallback />}>
             <ArtGallery />
+          </Suspense>
+        ),
+      },
+      {
+        id: 'youtube',
+        path: ROUTES.LIBRARY.YOUTUBE,
+        errorElement: <ErrorPage />,
+        element: (
+          <Suspense fallback={<HomeFallback />}>
+            <YouTubePage />
           </Suspense>
         ),
       },
