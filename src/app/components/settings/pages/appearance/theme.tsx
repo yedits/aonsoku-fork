@@ -21,12 +21,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/app/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/app/components/ui/dialog'
 
 export function ThemeSettingsPicker() {
   const { t } = useTranslation()
   const { theme: currentTheme, setTheme } = useTheme()
   const { customThemes, deleteCustomTheme, activeCustomTheme, setActiveCustomTheme } = useCustomTheme()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [editingTheme, setEditingTheme] = useState<string | null>(null)
+
+  // Clear custom theme CSS variables
+  const clearCustomThemeVars = () => {
+    const root = document.documentElement
+    const customThemeKeys = [
+      'background', 'background-foreground', 'foreground', 'card', 'card-foreground',
+      'popover', 'popover-foreground', 'primary', 'primary-foreground',
+      'secondary', 'secondary-foreground', 'muted', 'muted-foreground',
+      'accent', 'accent-foreground', 'destructive', 'destructive-foreground',
+      'border', 'input', 'ring'
+    ]
+    customThemeKeys.forEach(key => {
+      root.style.removeProperty(`--${key}`)
+    })
+  }
 
   const applyCustomTheme = (theme: CustomTheme) => {
     const root = document.documentElement
@@ -38,8 +59,20 @@ export function ThemeSettingsPicker() {
     toast.success(`Applied theme: ${theme.name}`)
   }
 
+  const handleBuiltInThemeClick = (theme: Theme) => {
+    // Clear any custom theme CSS variables
+    clearCustomThemeVars()
+    // Apply built-in theme
+    setTheme(theme)
+    setActiveCustomTheme(null)
+  }
+
   const handleDeleteTheme = (id: string) => {
     deleteCustomTheme(id)
+    if (activeCustomTheme === id) {
+      clearCustomThemeVars()
+      setActiveCustomTheme(null)
+    }
     setDeleteConfirm(null)
     toast.success('Theme deleted')
   }
@@ -59,10 +92,7 @@ export function ThemeSettingsPicker() {
             const isActive = theme === currentTheme && !activeCustomTheme
 
             return (
-              <div key={theme} onClick={() => {
-                setTheme(theme)
-                setActiveCustomTheme(null)
-              }}>
+              <div key={theme} onClick={() => handleBuiltInThemeClick(theme)}>
                 <ThemePlaceholder theme={theme} />
                 <ThemeTitle theme={theme} isActive={isActive} />
               </div>
@@ -88,6 +118,25 @@ export function ThemeSettingsPicker() {
                   
                   {/* Action Buttons - Show on hover */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
+                        <ThemeCreatorDialog 
+                          editThemeId={theme.id}
+                          onEditComplete={() => {}}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                    
                     <Button
                       size="sm"
                       variant="secondary"
