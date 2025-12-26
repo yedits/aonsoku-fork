@@ -3,9 +3,10 @@ import { Label } from '@/app/components/ui/label'
 import { Input } from '@/app/components/ui/input'
 import { Slider } from '@/app/components/ui/slider'
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
 import { hslToHex, hexToHsl } from '@/utils/theme-utils'
 import { Button } from '@/app/components/ui/button'
-import { Pipette } from 'lucide-react'
+import { ColorWheel } from './color-wheel'
 
 interface ColorPickerProps {
   label: string
@@ -49,6 +50,14 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
     setHexValue(hslToHex(hslString))
   }
 
+  const handleWheelChange = (h: number, s: number, l: number) => {
+    const newHsl = { h, s, l }
+    setHslValues(newHsl)
+    const hslString = `${h} ${s}% ${l}%`
+    onChange(hslString)
+    setHexValue(hslToHex(hslString))
+  }
+
   return (
     <div className="space-y-3">
       {label && <Label className="text-sm font-medium">{label}</Label>}
@@ -65,30 +74,64 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
               <div className="w-full h-full rounded-md" style={{ backgroundColor: hexValue }} />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">
-                  Pick a Color
-                </Label>
-                <input
-                  type="color"
-                  value={hexValue}
-                  onChange={(e) => handleHexChange(e.target.value)}
-                  className="w-full h-32 rounded cursor-pointer border-0"
-                  style={{ padding: 0 }}
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Hex Value</Label>
-                <Input
-                  type="text"
-                  value={hexValue}
-                  onChange={(e) => handleHexChange(e.target.value)}
-                  className="mt-1 font-mono"
-                />
-              </div>
-            </div>
+          <PopoverContent className="w-80">
+            <Tabs defaultValue="wheel" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="wheel">Color Wheel</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="wheel" className="space-y-4">
+                <div className="flex justify-center">
+                  <ColorWheel
+                    hue={hslValues.h}
+                    saturation={hslValues.s}
+                    lightness={hslValues.l}
+                    onChange={handleWheelChange}
+                    size={240}
+                  />
+                </div>
+                
+                {/* Lightness slider */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs">Lightness</Label>
+                    <span className="text-xs font-mono text-muted-foreground">{hslValues.l}%</span>
+                  </div>
+                  <Slider
+                    value={[hslValues.l]}
+                    onValueChange={([v]) => handleHslChange('l', v)}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="advanced" className="space-y-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Pick a Color
+                  </Label>
+                  <input
+                    type="color"
+                    value={hexValue}
+                    onChange={(e) => handleHexChange(e.target.value)}
+                    className="w-full h-32 rounded cursor-pointer border-0"
+                    style={{ padding: 0 }}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Hex Value</Label>
+                  <Input
+                    type="text"
+                    value={hexValue}
+                    onChange={(e) => handleHexChange(e.target.value)}
+                    className="mt-1 font-mono"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
 
