@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { Check, Minus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ContentItemTitle } from '@/app/components/settings/section'
+import { ThemeCreatorDialog } from '@/app/components/theme-creator/theme-creator-dialog'
 import { appThemes } from '@/app/observers/theme-observer'
 import { useTheme } from '@/store/theme.store'
 import { Theme } from '@/types/themeContext'
@@ -12,7 +13,10 @@ export function ThemeSettingsPicker() {
 
   return (
     <div className="h-full space-y-4">
-      <ContentItemTitle>{t('theme.label')}</ContentItemTitle>
+      <div className="flex items-center justify-between">
+        <ContentItemTitle>{t('theme.label')}</ContentItemTitle>
+        <ThemeCreatorDialog />
+      </div>
       <div className="w-full h-full grid grid-cols-4 gap-3">
         {appThemes.map((theme) => {
           const isActive = theme === currentTheme
