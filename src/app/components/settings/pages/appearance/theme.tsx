@@ -22,13 +22,35 @@ import {
   AlertDialogTitle,
 } from '@/app/components/ui/alert-dialog'
 
+// Themes to hide (default dark/light themes)
+const hiddenThemes: Theme[] = ['black-and-white', 'noctis-lilac']
+
+// Theme name mappings for better display names
+const themeDisplayNames: Record<string, string> = {
+  'github-dark': 'GitHub Dark',
+  'discord': 'Discord',
+  'one-dark': 'One Dark',
+  'night-owl-light': 'Night Owl Light',
+  'marmalade-beaver': 'Marmalade Beaver',
+  'bearded-seafoam': 'Bearded Seafoam',
+  'shades-of-purple': 'Shades of Purple',
+  'catppuccin-mocha': 'Catppuccin Mocha',
+  'nuclear-dark': 'Nuclear Dark',
+  'achiever': 'White & Orange',
+  'dracula': 'Dracula',
+}
+
 export function ThemeSettingsPicker() {
   const { t } = useTranslation()
   const { theme: currentTheme, setTheme } = useTheme()
   const { customThemes, deleteCustomTheme, activeCustomTheme, setActiveCustomTheme, exportTheme, importTheme } = useCustomTheme()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [editingTheme, setEditingTheme] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Filter out hidden themes
+  const visibleThemes = appThemes.filter(theme => !hiddenThemes.includes(theme))
 
   // Clear custom theme CSS variables
   const clearCustomThemeVars = () => {
@@ -52,14 +74,11 @@ export function ThemeSettingsPicker() {
       root.style.setProperty(`--${cssVar}`, value)
     })
     setActiveCustomTheme(theme.id)
-    // Keep the current theme mode (dark/light) but mark custom as active
     toast.success(`Applied theme: ${theme.name}`)
   }
 
   const handleBuiltInThemeClick = (theme: Theme) => {
-    // Clear any custom theme CSS variables
     clearCustomThemeVars()
-    // Apply built-in theme
     setTheme(theme)
     setActiveCustomTheme(null)
   }
@@ -113,22 +132,39 @@ export function ThemeSettingsPicker() {
       toast.error('Invalid theme file')
     }
     
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }
 
+  const handleEditClick = (themeId: string) => {
+    setEditingTheme(themeId)
+    setIsCreating(false)
+  }
+
+  const handleCreateClick = () => {
+    setEditingTheme(null)
+    setIsCreating(true)
+  }
+
+  const handleDialogClose = () => {
+    setEditingTheme(null)
+    setIsCreating(false)
+  }
+
   return (
-    <div className="h-full space-y-4">
+    <div className="h-full space-y-6">
       <div className="flex items-center justify-between">
         <ContentItemTitle>{t('theme.label')}</ContentItemTitle>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleImport} className="gap-2">
+          <Button variant="outline" onClick={handleImport} size="sm" className="gap-2">
             <Upload className="h-4 w-4" />
             Import
           </Button>
-          <ThemeCreatorDialog key={editingTheme || 'new'} editThemeId={editingTheme} onEditComplete={() => setEditingTheme(null)} />
+          <Button variant="default" onClick={handleCreateClick} size="sm" className="gap-2">
+            <span className="text-lg leading-none">+</span>
+            Create Theme
+          </Button>
         </div>
       </div>
 
@@ -142,15 +178,19 @@ export function ThemeSettingsPicker() {
 
       {/* Built-in Themes */}
       <div>
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Built-in Themes</h3>
-        <div className="w-full grid grid-cols-4 gap-3">
-          {appThemes.map((theme) => {
+        <h3 className="text-sm font-semibold mb-4">Built-in Themes</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {visibleThemes.map((theme) => {
             const isActive = theme === currentTheme && !activeCustomTheme
 
             return (
-              <div key={theme} onClick={() => handleBuiltInThemeClick(theme)}>
+              <div 
+                key={theme} 
+                onClick={() => handleBuiltInThemeClick(theme)}
+                className="cursor-pointer"
+              >
                 <ThemePlaceholder theme={theme} />
-                <ThemeTitle theme={theme} isActive={isActive} />
+                <ThemeTitle theme={theme} isActive={isActive} displayName={themeDisplayNames[theme]} />
               </div>
             )
           })}
@@ -160,14 +200,14 @@ export function ThemeSettingsPicker() {
       {/* Custom Themes */}
       {customThemes.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Your Custom Themes</h3>
-          <div className="w-full grid grid-cols-4 gap-3">
+          <h3 className="text-sm font-semibold mb-4">Your Custom Themes</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {customThemes.map((theme) => {
               const isActive = activeCustomTheme === theme.id
 
               return (
                 <div key={theme.id} className="group relative">
-                  <div onClick={() => applyCustomTheme(theme)}>
+                  <div onClick={() => applyCustomTheme(theme)} className="cursor-pointer">
                     <CustomThemePlaceholder theme={theme} />
                     <CustomThemeTitle theme={theme} isActive={isActive} />
                   </div>
@@ -177,10 +217,10 @@ export function ThemeSettingsPicker() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="h-7 w-7 p-0"
+                      className="h-7 w-7 p-0 bg-background/90 backdrop-blur-sm hover:bg-background"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setEditingTheme(theme.id)
+                        handleEditClick(theme.id)
                       }}
                     >
                       <Pencil className="h-3 w-3" />
@@ -189,7 +229,7 @@ export function ThemeSettingsPicker() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="h-7 w-7 p-0"
+                      className="h-7 w-7 p-0 bg-background/90 backdrop-blur-sm hover:bg-background"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleExport(theme.id)
@@ -201,7 +241,7 @@ export function ThemeSettingsPicker() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="h-7 w-7 p-0"
+                      className="h-7 w-7 p-0 bg-background/90 backdrop-blur-sm hover:bg-background"
                       onClick={(e) => {
                         e.stopPropagation()
                         setDeleteConfirm(theme.id)
@@ -215,6 +255,14 @@ export function ThemeSettingsPicker() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Theme Creator Dialog */}
+      {(isCreating || editingTheme) && (
+        <ThemeCreatorDialog 
+          editThemeId={editingTheme}
+          onEditComplete={handleDialogClose}
+        />
       )}
 
       {/* Delete Confirmation Dialog */}
@@ -244,17 +292,17 @@ export function ThemeSettingsPicker() {
 export function ThemePlaceholder({ theme }: { theme: Theme }) {
   return (
     <div className={theme}>
-      <div className="bg-background aspect-square border border-border rounded overflow-hidden flex cursor-pointer hover:border-primary transition-colors">
-        <div className="w-1/3 h-full bg-background border-r border-border flex flex-col p-1 gap-1">
+      <div className="bg-background aspect-square border-2 border-border rounded-lg overflow-hidden flex hover:border-primary transition-all hover:shadow-lg">
+        <div className="w-1/3 h-full bg-background border-r border-border flex flex-col p-1.5 gap-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="w-full h-1/5 bg-accent rounded-[2px]" />
+            <div key={i} className="w-full h-1/5 bg-accent rounded-sm" />
           ))}
         </div>
-        <div className="w-full h-full bg-background-foreground flex flex-col gap-1 p-1 *:w-full *:h-1/4 *:rounded-[2px]">
-          <div className="bg-accent" />
-          <div className="bg-primary" />
-          <div className="bg-muted" />
-          <div className="bg-secondary" />
+        <div className="w-full h-full bg-background-foreground flex flex-col gap-1 p-1.5">
+          <div className="w-full h-1/4 bg-accent rounded-sm" />
+          <div className="w-full h-1/4 bg-primary rounded-sm" />
+          <div className="w-full h-1/4 bg-muted rounded-sm" />
+          <div className="w-full h-1/4 bg-secondary rounded-sm" />
         </div>
       </div>
     </div>
@@ -267,11 +315,11 @@ function CustomThemePlaceholder({ theme }: { theme: CustomTheme }) {
   return (
     <div>
       <div 
-        className="aspect-square border-2 border-border rounded overflow-hidden flex cursor-pointer hover:border-primary transition-colors"
+        className="aspect-square border-2 border-border rounded-lg overflow-hidden flex hover:border-primary transition-all hover:shadow-lg"
         style={{ backgroundColor: `hsl(${colors.background})` }}
       >
         <div 
-          className="w-1/3 h-full border-r flex flex-col p-1 gap-1"
+          className="w-1/3 h-full border-r flex flex-col p-1.5 gap-1"
           style={{ 
             backgroundColor: `hsl(${colors.background})`,
             borderColor: `hsl(${colors.border})`
@@ -280,29 +328,29 @@ function CustomThemePlaceholder({ theme }: { theme: CustomTheme }) {
           {Array.from({ length: 5 }).map((_, i) => (
             <div 
               key={i} 
-              className="w-full h-1/5 rounded-[2px]" 
+              className="w-full h-1/5 rounded-sm" 
               style={{ backgroundColor: `hsl(${colors.accent})` }}
             />
           ))}
         </div>
         <div 
-          className="w-full h-full flex flex-col gap-1 p-1"
+          className="w-full h-full flex flex-col gap-1 p-1.5"
           style={{ backgroundColor: `hsl(${colors.backgroundForeground})` }}
         >
           <div 
-            className="w-full h-1/4 rounded-[2px]" 
+            className="w-full h-1/4 rounded-sm" 
             style={{ backgroundColor: `hsl(${colors.accent})` }}
           />
           <div 
-            className="w-full h-1/4 rounded-[2px]" 
+            className="w-full h-1/4 rounded-sm" 
             style={{ backgroundColor: `hsl(${colors.primary})` }}
           />
           <div 
-            className="w-full h-1/4 rounded-[2px]" 
+            className="w-full h-1/4 rounded-sm" 
             style={{ backgroundColor: `hsl(${colors.muted})` }}
           />
           <div 
-            className="w-full h-1/4 rounded-[2px]" 
+            className="w-full h-1/4 rounded-sm" 
             style={{ backgroundColor: `hsl(${colors.secondary})` }}
           />
         </div>
@@ -314,31 +362,33 @@ function CustomThemePlaceholder({ theme }: { theme: CustomTheme }) {
 type ThemeTitleProps = {
   isActive: boolean
   theme: Theme
+  displayName?: string
 }
 
-export function ThemeTitle({ isActive, theme }: ThemeTitleProps) {
+export function ThemeTitle({ isActive, theme, displayName }: ThemeTitleProps) {
   const { t } = useTranslation()
+  const name = displayName || t(`theme.${theme}`)
 
   return (
     <span
       className={clsx(
-        'mt-2 flex items-center gap-1',
+        'mt-2 flex items-center gap-1.5',
         !isActive && 'text-muted-foreground/70',
       )}
     >
       <Check
-        size={16}
-        strokeWidth={2}
-        className={clsx(!isActive && 'hidden')}
+        size={14}
+        strokeWidth={2.5}
+        className={clsx(!isActive && 'hidden', 'text-primary')}
         aria-hidden="true"
       />
       <Minus
-        size={16}
-        strokeWidth={2}
+        size={14}
+        strokeWidth={2.5}
         className={clsx(isActive && 'hidden')}
         aria-hidden="true"
       />
-      <span className="text-xs font-medium">{t(`theme.${theme}`)}</span>
+      <span className="text-xs font-medium truncate">{name}</span>
     </span>
   )
 }
@@ -347,23 +397,23 @@ function CustomThemeTitle({ isActive, theme }: { isActive: boolean; theme: Custo
   return (
     <span
       className={clsx(
-        'mt-2 flex items-center gap-1',
+        'mt-2 flex items-center gap-1.5',
         !isActive && 'text-muted-foreground/70',
       )}
     >
       <Check
-        size={16}
-        strokeWidth={2}
-        className={clsx(!isActive && 'hidden')}
+        size={14}
+        strokeWidth={2.5}
+        className={clsx(!isActive && 'hidden', 'text-primary')}
         aria-hidden="true"
       />
       <Minus
-        size={16}
-        strokeWidth={2}
+        size={14}
+        strokeWidth={2.5}
         className={clsx(isActive && 'hidden')}
         aria-hidden="true"
       />
-      <span className="text-xs font-medium">{theme.name}</span>
+      <span className="text-xs font-medium truncate">{theme.name}</span>
     </span>
   )
 }
